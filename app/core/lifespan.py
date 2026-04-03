@@ -93,6 +93,11 @@ class ModelManager:
                     import shap  # lazy import — heavy, only needed when model is available
                     self.explainer = shap.TreeExplainer(self.loan_model)
                     logger.info("✓ SHAP TreeExplainer pre-created at startup")
+                except ImportError as import_err:
+                    logger.warning(
+                        "⚠ Could not pre-create SHAP explainer (missing package): %s", 
+                        import_err
+                    )
                 except Exception as shap_exc:
                     logger.warning(
                         "⚠ Could not pre-create SHAP explainer: %s", shap_exc
