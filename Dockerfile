@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project files and install dependencies
-    pip install --user --no-cache-dir -e .
 RUN pip install --upgrade pip setuptools wheel && \
 COPY pyproject.toml .
 COPY app/ ./app/
