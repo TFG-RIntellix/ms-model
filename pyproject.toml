@@ -16,13 +16,13 @@ dependencies = [
     "uvicorn[standard]==0.24.0",
     "pydantic==2.5.0",
     "pydantic-settings==2.1.0",
+    "packaging>=20.0",
     "xgboost==2.0.3",
     "shap>=0.46.0",
     "numpy>=2.0",
     "pandas>=2.2.0",
     "scikit-learn>=1.4.0",
     "python-multipart==0.0.6",
-    "packaging>=20.0",
 ]
 
 [project.optional-dependencies]
