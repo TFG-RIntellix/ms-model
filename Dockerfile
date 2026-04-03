@@ -28,6 +28,7 @@ RUN useradd -m -u 1000 appuser
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONPATH=/home/appuser/.local/lib/python3.11/site-packages:$PYTHONPATH
 
 # Copy application code
 COPY --chown=appuser:appuser app/ ./app/
