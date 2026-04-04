@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files and install dependencies
-COPY pyproject.toml .
+# Copy project files and install dependencies into a portable prefix
+COPY pyproject.toml README.md ./
 COPY app/ ./app/
-RUN pip install --upgrade pip setuptools wheel packaging && \
-    pip install --user --no-cache-dir -e .
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --prefix=/install .
 
 
 # Stage 2: Runtime
@@ -22,13 +22,16 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install runtime tooling used by healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /home/appuser/.local
-ENV PATH=/home/appuser/.local/bin:$PATH
-ENV PYTHONPATH=/home/appuser/.local/lib/python3.11/site-packages:$PYTHONPATH
+# Copy installed packages and console scripts into runtime
+COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY --chown=appuser:appuser app/ ./app/
