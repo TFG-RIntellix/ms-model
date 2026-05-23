@@ -49,8 +49,8 @@ class LoanApplicationRequest(BaseModel):
     )
     termMonths: int = Field(..., gt=0, description="Loan term in months")
     interestRate: float = Field(..., ge=0, description="Interest rate")
-    LTV: float = Field(..., ge=0, le=1, description="Loan-to-Value ratio (0-1)")
-    DTI: float = Field(..., ge=0, le=1, description="Debt-to-Income ratio (0-1)")
+    ltv: float = Field(..., ge=0, le=1, description="Loan-to-Value ratio (0-1)")
+    dti: float = Field(..., ge=0, le=1, description="Debt-to-Income ratio (0-1)")
     previousLoansCount: int = Field(
         ..., ge=0, description="Number of previous loans"
     )
@@ -77,8 +77,8 @@ class LoanApplicationRequest(BaseModel):
                     "loanAmount": 15000.0,
                     "termMonths": 36,
                     "interestRate": 5.5,
-                    "LTV": 0.45,
-                    "DTI": 0.35,
+                    "ltv": 0.45,
+                    "dti": 0.35,
                     "previousLoansCount": 1,
                     "previousDefaultsCount": 0,
                 }

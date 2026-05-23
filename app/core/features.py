@@ -33,8 +33,8 @@ FEATURE_ORDER: List[str] = [
     "loanAmount",
     "termMonths",
     "interestRate",
-    "LTV",
-    "DTI",
+    "ltv",
+    "dti",
     "previousLoansCount",
     "previousDefaultsCount",
 ]

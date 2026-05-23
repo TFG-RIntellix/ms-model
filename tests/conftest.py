@@ -58,8 +58,8 @@ def sample_loan_payload() -> dict:
         "loanAmount": 15000.0,
         "termMonths": 36,
         "interestRate": 5.5,
-        "LTV": 0.45,
-        "DTI": 0.35,
+        "ltv": 0.45,
+        "dti": 0.35,
         "previousLoansCount": 1,
         "previousDefaultsCount": 0,
     }
@@ -84,8 +84,8 @@ def sample_loan_request() -> LoanApplicationRequest:
         loanAmount=15000.0,
         termMonths=36,
         interestRate=5.5,
-        LTV=0.45,
-        DTI=0.35,
+        ltv=0.45,
+        dti=0.35,
         previousLoansCount=1,
         previousDefaultsCount=0,
     )

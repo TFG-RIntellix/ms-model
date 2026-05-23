@@ -155,7 +155,7 @@ curl -X POST "http://localhost:8000/api/v1/risk/predict-loan" \
     "Situacion_Laboral", "Sector_Trabajo", "Dependientes",
     "Vivienda", "Tiene_Hipoteca", "Ingresos_Anuales",
     "Tipo_Prestamo", "Proposito", "Monto_Prestamo",
-    "Plazo_Meses", "Tasa_Interes", "LTV", "DTI",
+    "Plazo_Meses", "Tasa_Interes", "ltv", "dti",
     "Num_Prestamos_Previos", "Num_Moras_Previas"
   ],
   "scaler_loaded": true,

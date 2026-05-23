@@ -168,8 +168,8 @@ class CategoricalEncoder:
             "loanAmount": request_data.get("loanAmount"),
             "termMonths": request_data.get("termMonths"),
             "interestRate": request_data.get("interestRate"),
-            "LTV": request_data.get("LTV"),
-            "DTI": request_data.get("DTI"),
+            "ltv": request_data.get("ltv"),
+            "dti": request_data.get("dti"),
             "previousLoansCount": request_data.get("previousLoansCount"),
             "previousDefaultsCount": request_data.get("previousDefaultsCount"),
         }
