@@ -11,16 +11,15 @@ backward compatibility.  New code should import directly from:
 # Re-export everything so existing ``from app.schemas.models import ...``
 # statements continue to work.
 from app.schemas.enums import (  # noqa: F401
-    GeneroEnum,
-    EstadoCivilEnum,
-    EducacionEnum,
-    SituacionLaboralEnum,
-    SectorTrabajoEnum,
-    ViviendaEnum,
-    TieneHipotecaEnum,
-    TienePrestamoEnum,
-    TipoPrestamoEnum,
-    PropositoEnum,
+    GenderEnum,
+    MaritalStatusEnum,
+    EducationEnum,
+    EmploymentStatusEnum,
+    OccupationSectorEnum,
+    HomeOwnershipEnum,
+    HasMortgageEnum,
+    LoanTypeEnum,
+    LoanPurposeEnum,
 )
 
 from app.schemas.requests import (  # noqa: F401, E402

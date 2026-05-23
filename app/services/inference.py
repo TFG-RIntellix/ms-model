@@ -137,6 +137,7 @@ class InferenceService:
                     base_value = active_explainer.expected_value
                     logger.info("SHAP explanations generated. Shape: %s",
                                 shap_values.shape)
+                    logger.info ("Shap values: %s", shap_values.tolist().__str__())
                     return shap_values, base_value
                 except Exception as e:
                     logger.error("SHAP calculation error: %s", str(e),

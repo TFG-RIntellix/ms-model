@@ -21,15 +21,15 @@ import numpy as np
 
 from app.core.features import FEATURE_ORDER
 from app.schemas.enums import (
-    GeneroEnum,
-    EstadoCivilEnum,
-    EducacionEnum,
-    SituacionLaboralEnum,
-    SectorTrabajoEnum,
-    ViviendaEnum,
-    TieneHipotecaEnum,
-    TipoPrestamoEnum,
-    PropositoEnum,
+    GenderEnum,
+    MaritalStatusEnum,
+    EducationEnum,
+    EmploymentStatusEnum,
+    OccupationSectorEnum,
+    HomeOwnershipEnum,
+    HasMortgageEnum,
+    LoanTypeEnum,
+    LoanPurposeEnum,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,79 +49,79 @@ class CategoricalEncoder:
     """
 
     # Mapping: enum value → integer code (MUST match LabelEncoder order)
-    GENERO_MAP: Dict[GeneroEnum, int] = {
-        GeneroEnum.MUJER: 0,
-        GeneroEnum.HOMBRE: 1,
-        GeneroEnum.OTRO: 2,
+    GENDER_MAP: Dict[GenderEnum, int] = {
+        GenderEnum.FEMALE: 0,
+        GenderEnum.MALE: 1,
+        GenderEnum.OTHER: 2,
     }
 
-    ESTADO_CIVIL_MAP: Dict[EstadoCivilEnum, int] = {
-        EstadoCivilEnum.SOLTERO: 0,
-        EstadoCivilEnum.CASADO: 1,
-        EstadoCivilEnum.DIVORCIADO: 2,
-        EstadoCivilEnum.VIUDO: 3,
+    MARITAL_STATUS_MAP: Dict[MaritalStatusEnum, int] = {
+        MaritalStatusEnum.SINGLE: 0,
+        MaritalStatusEnum.MARRIED: 1,
+        MaritalStatusEnum.DIVORCED: 2,
+        MaritalStatusEnum.WIDOWED: 3,
     }
 
-    EDUCACION_MAP: Dict[EducacionEnum, int] = {
-        EducacionEnum.SIN_ESTUDIOS: 0,
-        EducacionEnum.PRIMARIA: 1,
-        EducacionEnum.SECUNDARIA: 2,
-        EducacionEnum.BACHILLERATO: 3,
-        EducacionEnum.FORMACION_PROFESIONAL: 4,
-        EducacionEnum.GRADO: 5,
-        EducacionEnum.POSGRADO: 6,
+    EDUCATION_MAP: Dict[EducationEnum, int] = {
+        EducationEnum.NO_STUDIES: 0,
+        EducationEnum.PRIMARY: 1,
+        EducationEnum.SECONDARY: 2,
+        EducationEnum.HIGH_SCHOOL: 3,
+        EducationEnum.VOCATIONAL: 4,
+        EducationEnum.DEGREE: 5,
+        EducationEnum.POSTGRADUATE: 6,
     }
 
-    SITUACION_LABORAL_MAP: Dict[SituacionLaboralEnum, int] = {
-        SituacionLaboralEnum.INDEFINIDO: 0,
-        SituacionLaboralEnum.TEMPORAL: 1,
-        SituacionLaboralEnum.AUTONOMO: 2,
-        SituacionLaboralEnum.FUNCIONARIO: 3,
-        SituacionLaboralEnum.DESEMPLEADO: 4,
-        SituacionLaboralEnum.INACTIVO: 5,
+    EMPLOYMENT_STATUS_MAP: Dict[EmploymentStatusEnum, int] = {
+        EmploymentStatusEnum.PERMANENT: 0,
+        EmploymentStatusEnum.TEMPORARY: 1,
+        EmploymentStatusEnum.SELF_EMPLOYED: 2,
+        EmploymentStatusEnum.CIVIL_SERVANT: 3,
+        EmploymentStatusEnum.UNEMPLOYED: 4,
+        EmploymentStatusEnum.INACTIVE: 5,
     }
 
-    SECTOR_TRABAJO_MAP: Dict[SectorTrabajoEnum, int] = {
-        SectorTrabajoEnum.SECTOR_PUBLICO: 0,
-        SectorTrabajoEnum.SALUD: 1,
-        SectorTrabajoEnum.EDUCACION: 2,
-        SectorTrabajoEnum.HOSTELERIA: 3,
-        SectorTrabajoEnum.VENTAS: 4,
-        SectorTrabajoEnum.TECNOLOGIA: 5,
-        SectorTrabajoEnum.CONSTRUCCION: 6,
-        SectorTrabajoEnum.AGROPECUARIO: 7,
-        SectorTrabajoEnum.OTROS: 8,
+    OCCUPATION_SECTOR_MAP: Dict[OccupationSectorEnum, int] = {
+        OccupationSectorEnum.PUBLIC_SECTOR: 0,
+        OccupationSectorEnum.HEALTHCARE: 1,
+        OccupationSectorEnum.EDUCATION: 2,
+        OccupationSectorEnum.HOSPITALITY: 3,
+        OccupationSectorEnum.SALES: 4,
+        OccupationSectorEnum.TECHNOLOGY: 5,
+        OccupationSectorEnum.CONSTRUCTION: 6,
+        OccupationSectorEnum.AGRICULTURE: 7,
+        OccupationSectorEnum.OTHER: 8,
     }
 
-    VIVIENDA_MAP: Dict[ViviendaEnum, int] = {
-        ViviendaEnum.PROPIA_PAGADA: 0,
-        ViviendaEnum.PROPIA_HIPOTECA: 1,
-        ViviendaEnum.ALQUILER: 2,
-        ViviendaEnum.CEDIDA: 3,
+    HOME_OWNERSHIP_MAP: Dict[HomeOwnershipEnum, int] = {
+        HomeOwnershipEnum.OWNED_PAID: 0,
+        HomeOwnershipEnum.OWNED_MORTGAGED: 1,
+        HomeOwnershipEnum.RENTED: 2,
+        HomeOwnershipEnum.CEDED: 3,
     }
 
-    TIENE_HIPOTECA_MAP: Dict[TieneHipotecaEnum, int] = {
-        TieneHipotecaEnum.SI: 1,
-        TieneHipotecaEnum.NO: 0,
+    HAS_MORTGAGE_MAP: Dict[HasMortgageEnum, int] = {
+        HasMortgageEnum.YES: 1,
+        HasMortgageEnum.NO: 0,
     }
 
-    TIPO_PRESTAMO_MAP: Dict[TipoPrestamoEnum, int] = {
-        TipoPrestamoEnum.HIPOTECARIO: 0,
-        TipoPrestamoEnum.PERSONAL: 1,
-        TipoPrestamoEnum.AUTO: 2,
-        TipoPrestamoEnum.CONSUMO: 3,
+    LOAN_TYPE_MAP: Dict[LoanTypeEnum, int] = {
+        LoanTypeEnum.MORTGAGE: 0,
+        LoanTypeEnum.PERSONAL: 1,
+        LoanTypeEnum.AUTO: 2,
+        LoanTypeEnum.CONSUMER: 3,
     }
 
-    PROPOSITO_MAP: Dict[PropositoEnum, int] = {
-        PropositoEnum.COMPRA_VIVIENDA: 0,
-        PropositoEnum.REFORMA_VIVIENDA: 1,
-        PropositoEnum.COMPRA_VEHICULO: 2,
-        PropositoEnum.REFORMA_HOGAR: 3,
-        PropositoEnum.EDUCACION: 4,
-        PropositoEnum.SALUD: 5,
-        PropositoEnum.CONSOLIDACION_DEUDA: 6,
-        PropositoEnum.VIAJES: 7,
-        PropositoEnum.OTROS: 8,
+    LOAN_PURPOSE_MAP: Dict[LoanPurposeEnum, int] = {
+        LoanPurposeEnum.HOME_PURCHASE: 0,
+        LoanPurposeEnum.HOME_RENOVATION: 1,
+        LoanPurposeEnum.VEHICLE_PURCHASE: 2,
+        LoanPurposeEnum.HOME_IMPROVEMENT: 3,
+        LoanPurposeEnum.EDUCATION: 4,
+        LoanPurposeEnum.HEALTH: 5,
+        LoanPurposeEnum.DEBT_CONSOLIDATION: 6,
+        LoanPurposeEnum.TRAVEL: 7,
+        LoanPurposeEnum.OTHER: 8,
     }
 
     @staticmethod
@@ -145,33 +145,33 @@ class CategoricalEncoder:
                 or its value is not in the corresponding mapping dict.
         """
         encoded: Dict[str, Any] = {
-            "Edad": request_data.get("edad"),
-            "Genero": CategoricalEncoder.GENERO_MAP[request_data.get("genero")],
-            "Estado_Civil": CategoricalEncoder.ESTADO_CIVIL_MAP[request_data.get("estado_civil")],
-            "Educacion": CategoricalEncoder.EDUCACION_MAP[request_data.get("educacion")],
-            "Situacion_Laboral": CategoricalEncoder.SITUACION_LABORAL_MAP[
-                request_data.get("situacion_laboral")
+            "age": request_data.get("age"),
+            "gender": CategoricalEncoder.GENDER_MAP[request_data.get("gender")],
+            "maritalStatus": CategoricalEncoder.MARITAL_STATUS_MAP[request_data.get("maritalStatus")],
+            "education": CategoricalEncoder.EDUCATION_MAP[request_data.get("education")],
+            "employmentStatus": CategoricalEncoder.EMPLOYMENT_STATUS_MAP[
+                request_data.get("employmentStatus")
             ],
-            "Sector_Trabajo": CategoricalEncoder.SECTOR_TRABAJO_MAP[
-                request_data.get("sector_trabajo")
+            "occupationSector": CategoricalEncoder.OCCUPATION_SECTOR_MAP[
+                request_data.get("occupationSector")
             ],
-            "Dependientes": request_data.get("dependientes"),
-            "Vivienda": CategoricalEncoder.VIVIENDA_MAP[request_data.get("vivienda")],
-            "Tiene_Hipoteca": CategoricalEncoder.TIENE_HIPOTECA_MAP[
-                request_data.get("tiene_hipoteca")
+            "dependents": request_data.get("dependents"),
+            "homeOwnership": CategoricalEncoder.HOME_OWNERSHIP_MAP[request_data.get("homeOwnership")],
+            "hasMortgage": CategoricalEncoder.HAS_MORTGAGE_MAP[
+                request_data.get("hasMortgage")
             ],
-            "Ingresos_Anuales": request_data.get("ingresos_anuales"),
-            "Tipo_Prestamo": CategoricalEncoder.TIPO_PRESTAMO_MAP[
-                request_data.get("tipo_prestamo")
+            "annualIncome": request_data.get("annualIncome"),
+            "loanType": CategoricalEncoder.LOAN_TYPE_MAP[
+                request_data.get("loanType")
             ],
-            "Proposito": CategoricalEncoder.PROPOSITO_MAP[request_data.get("proposito")],
-            "Monto_Prestamo": request_data.get("monto_prestamo"),
-            "Plazo_Meses": request_data.get("plazo_meses"),
-            "Tasa_Interes": request_data.get("tasa_interes"),
-            "LTV": request_data.get("ltv"),
-            "DTI": request_data.get("dti"),
-            "Num_Prestamos_Previos": request_data.get("num_prestamos_previos"),
-            "Num_Moras_Previas": request_data.get("num_moras_previas"),
+            "purpose": CategoricalEncoder.LOAN_PURPOSE_MAP[request_data.get("purpose")],
+            "loanAmount": request_data.get("loanAmount"),
+            "termMonths": request_data.get("termMonths"),
+            "interestRate": request_data.get("interestRate"),
+            "LTV": request_data.get("LTV"),
+            "DTI": request_data.get("DTI"),
+            "previousLoansCount": request_data.get("previousLoansCount"),
+            "previousDefaultsCount": request_data.get("previousDefaultsCount"),
         }
 
         feature_vector = [encoded[feature] for feature in FEATURE_ORDER]

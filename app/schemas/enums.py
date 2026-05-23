@@ -8,101 +8,94 @@ each categorical field.
 from enum import Enum
 
 
-class GeneroEnum(str, Enum):
+class GenderEnum(str, Enum):
     """Gender categories."""
 
-    MUJER = "Mujer"
-    HOMBRE = "Hombre"
-    OTRO = "Otro"
+    FEMALE = "Mujer"
+    MALE = "Hombre"
+    OTHER = "Otro"
 
 
-class EstadoCivilEnum(str, Enum):
+class MaritalStatusEnum(str, Enum):
     """Marital status categories."""
 
-    SOLTERO = "Soltero"
-    CASADO = "Casado"
-    DIVORCIADO = "Divorciado"
-    VIUDO = "Viudo"
+    SINGLE = "Soltero"
+    MARRIED = "Casado"
+    DIVORCED = "Divorciado"
+    WIDOWED = "Viudo"
 
 
-class EducacionEnum(str, Enum):
+class EducationEnum(str, Enum):
     """Education level categories (ordinal)."""
 
-    SIN_ESTUDIOS = "Sin Estudios"
-    PRIMARIA = "Primaria"
-    SECUNDARIA = "Secundaria"
-    BACHILLERATO = "Bachillerato"
-    FORMACION_PROFESIONAL = "Formacion Profesional"
-    GRADO = "Grado"
-    POSGRADO = "Posgrado"
+    NO_STUDIES = "Sin Estudios"
+    PRIMARY = "Primaria"
+    SECONDARY = "Secundaria"
+    HIGH_SCHOOL = "Bachillerato"
+    VOCATIONAL = "Formacion Profesional"
+    DEGREE = "Grado"
+    POSTGRADUATE = "Posgrado"
 
 
-class SituacionLaboralEnum(str, Enum):
+class EmploymentStatusEnum(str, Enum):
     """Employment situation categories."""
 
-    INDEFINIDO = "Indefinido"
-    TEMPORAL = "Temporal"
-    AUTONOMO = "Autonomo"
-    FUNCIONARIO = "Funcionario"
-    DESEMPLEADO = "Desempleado"
-    INACTIVO = "Inactivo"
+    PERMANENT = "Indefinido"
+    TEMPORARY = "Temporal"
+    SELF_EMPLOYED = "Autonomo"
+    CIVIL_SERVANT = "Funcionario"
+    UNEMPLOYED = "Desempleado"
+    INACTIVE = "Inactivo"
 
 
-class SectorTrabajoEnum(str, Enum):
+class OccupationSectorEnum(str, Enum):
     """Work sector categories."""
 
-    SECTOR_PUBLICO = "Sector Publico"
-    SALUD = "Salud"
-    EDUCACION = "Educacion"
-    HOSTELERIA = "Hosteleria"
-    VENTAS = "Ventas"
-    TECNOLOGIA = "Tecnologia"
-    CONSTRUCCION = "Construccion"
-    AGROPECUARIO = "Agropecuario"
-    OTROS = "Otros"
+    PUBLIC_SECTOR = "Sector Publico"
+    HEALTHCARE = "Salud"
+    EDUCATION = "Educacion"
+    HOSPITALITY = "Hosteleria"
+    SALES = "Ventas"
+    TECHNOLOGY = "Tecnologia"
+    CONSTRUCTION = "Construccion"
+    AGRICULTURE = "Agropecuario"
+    OTHER = "Otros"
 
 
-class ViviendaEnum(str, Enum):
+class HomeOwnershipEnum(str, Enum):
     """Housing type categories."""
 
-    PROPIA_PAGADA = "Propia_Pagada"
-    PROPIA_HIPOTECA = "Propia_Hipoteca"
-    ALQUILER = "Alquiler"
-    CEDIDA = "Cedida"
+    OWNED_PAID = "Propia_Pagada"
+    OWNED_MORTGAGED = "Propia_Hipoteca"
+    RENTED = "Alquiler"
+    CEDED = "Cedida"
 
 
-class TieneHipotecaEnum(str, Enum):
+class HasMortgageEnum(str, Enum):
     """Mortgage status (binary)."""
 
-    SI = "Si"
+    YES = "Si"
     NO = "No"
 
 
-class TienePrestamoEnum(str, Enum):
-    """Existing loan status (binary)."""
-
-    SI = "Si"
-    NO = "No"
-
-
-class TipoPrestamoEnum(str, Enum):
+class LoanTypeEnum(str, Enum):
     """Loan type categories."""
 
-    HIPOTECARIO = "Hipotecario"
+    MORTGAGE = "Hipotecario"
     PERSONAL = "Personal"
     AUTO = "Auto"
-    CONSUMO = "Consumo"
+    CONSUMER = "Consumo"
 
 
-class PropositoEnum(str, Enum):
+class LoanPurposeEnum(str, Enum):
     """Loan purpose categories."""
 
-    COMPRA_VIVIENDA = "Compra_Vivienda"
-    REFORMA_VIVIENDA = "Reforma_Vivienda"
-    COMPRA_VEHICULO = "Compra_Vehiculo"
-    REFORMA_HOGAR = "Reforma_Hogar"
-    EDUCACION = "Educacion"
-    SALUD = "Salud"
-    CONSOLIDACION_DEUDA = "Consolidacion_Deuda"
-    VIAJES = "Viajes"
-    OTROS = "Otros"
+    HOME_PURCHASE = "Compra_Vivienda"
+    HOME_RENOVATION = "Reforma_Vivienda"
+    VEHICLE_PURCHASE = "Compra_Vehiculo"
+    HOME_IMPROVEMENT = "Reforma_Hogar"
+    EDUCATION = "Educacion"
+    HEALTH = "Salud"
+    DEBT_CONSOLIDATION = "Consolidacion_Deuda"
+    TRAVEL = "Viajes"
+    OTHER = "Otros"

@@ -18,25 +18,25 @@ from typing import Dict, List
 # ---------------------------------------------------------------------------
 
 FEATURE_ORDER: List[str] = [
-    "Edad",
-    "Genero",
-    "Estado_Civil",
-    "Educacion",
-    "Situacion_Laboral",
-    "Sector_Trabajo",
-    "Dependientes",
-    "Vivienda",
-    "Tiene_Hipoteca",
-    "Ingresos_Anuales",
-    "Tipo_Prestamo",
-    "Proposito",
-    "Monto_Prestamo",
-    "Plazo_Meses",
-    "Tasa_Interes",
+    "age",
+    "gender",
+    "maritalStatus",
+    "education",
+    "employmentStatus",
+    "occupationSector",
+    "dependents",
+    "homeOwnership",
+    "hasMortgage",
+    "annualIncome",
+    "loanType",
+    "purpose",
+    "loanAmount",
+    "termMonths",
+    "interestRate",
     "LTV",
     "DTI",
-    "Num_Prestamos_Previos",
-    "Num_Moras_Previas",
+    "previousLoansCount",
+    "previousDefaultsCount",
 ]
 
 # ---------------------------------------------------------------------------
@@ -44,9 +44,9 @@ FEATURE_ORDER: List[str] = [
 # ---------------------------------------------------------------------------
 
 CATEGORICAL_FEATURES: Dict[str, List[str]] = {
-    "Genero": ["Mujer", "Hombre", "Otro"],
-    "Estado_Civil": ["Soltero", "Casado", "Divorciado", "Viudo"],
-    "Educacion": [
+    "gender": ["Mujer", "Hombre", "Otro"],
+    "maritalStatus": ["Soltero", "Casado", "Divorciado", "Viudo"],
+    "education": [
         "Sin Estudios",
         "Primaria",
         "Secundaria",
@@ -55,7 +55,7 @@ CATEGORICAL_FEATURES: Dict[str, List[str]] = {
         "Grado",
         "Posgrado",
     ],
-    "Situacion_Laboral": [
+    "employmentStatus": [
         "Indefinido",
         "Temporal",
         "Autonomo",
@@ -63,7 +63,7 @@ CATEGORICAL_FEATURES: Dict[str, List[str]] = {
         "Desempleado",
         "Inactivo",
     ],
-    "Sector_Trabajo": [
+    "occupationSector": [
         "Sector Publico",
         "Salud",
         "Educacion",
@@ -74,10 +74,10 @@ CATEGORICAL_FEATURES: Dict[str, List[str]] = {
         "Agropecuario",
         "Otros",
     ],
-    "Vivienda": ["Propia_Pagada", "Propia_Hipoteca", "Alquiler", "Cedida"],
-    "Tiene_Hipoteca": ["Si", "No"],
-    "Tipo_Prestamo": ["Hipotecario", "Personal", "Auto", "Consumo"],
-    "Proposito": [
+    "homeOwnership": ["Propia_Pagada", "Propia_Hipoteca", "Alquiler", "Cedida"],
+    "hasMortgage": ["Si", "No"],
+    "loanType": ["Hipotecario", "Personal", "Auto", "Consumo"],
+    "purpose": [
         "Compra_Vivienda",
         "Reforma_Vivienda",
         "Compra_Vehiculo",
@@ -103,3 +103,8 @@ NUMERIC_FEATURES: List[str] = [
 # ---------------------------------------------------------------------------
 
 TARGET_COLUMN: str = "Target_PD"
+
+# CSV column name to feature name mapping (for data loading)
+CSV_COLUMN_MAPPING: Dict[str, str] = {
+    col: col for col in FEATURE_ORDER
+}

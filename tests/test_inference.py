@@ -10,9 +10,9 @@ import numpy as np
 from unittest.mock import Mock
 
 from app.schemas.enums import (
-    GeneroEnum, EstadoCivilEnum, EducacionEnum, SituacionLaboralEnum,
-    SectorTrabajoEnum, ViviendaEnum, TieneHipotecaEnum, TipoPrestamoEnum,
-    PropositoEnum,
+    GenderEnum, MaritalStatusEnum, EducationEnum, EmploymentStatusEnum,
+    OccupationSectorEnum, HomeOwnershipEnum, HasMortgageEnum, LoanTypeEnum,
+    LoanPurposeEnum,
 )
 from app.services.encoder import CategoricalEncoder
 from app.services.inference import InferenceService
@@ -23,23 +23,23 @@ from app.services.inference import InferenceService
 class TestCategoricalEncoder:
     """Tests for ``CategoricalEncoder`` mapping correctness."""
 
-    def test_encode_genero(self):
+    def test_encode_gender(self):
         """Gender map has correct integer codes."""
-        assert CategoricalEncoder.GENERO_MAP[GeneroEnum.MUJER] == 0
-        assert CategoricalEncoder.GENERO_MAP[GeneroEnum.HOMBRE] == 1
-        assert CategoricalEncoder.GENERO_MAP[GeneroEnum.OTRO] == 2
+        assert CategoricalEncoder.GENDER_MAP[GenderEnum.FEMALE] == 0
+        assert CategoricalEncoder.GENDER_MAP[GenderEnum.MALE] == 1
+        assert CategoricalEncoder.GENDER_MAP[GenderEnum.OTHER] == 2
 
-    def test_encode_estado_civil(self):
+    def test_encode_marital_status(self):
         """Marital status map has correct integer codes."""
-        assert CategoricalEncoder.ESTADO_CIVIL_MAP[EstadoCivilEnum.SOLTERO] == 0
-        assert CategoricalEncoder.ESTADO_CIVIL_MAP[EstadoCivilEnum.CASADO] == 1
-        assert CategoricalEncoder.ESTADO_CIVIL_MAP[EstadoCivilEnum.DIVORCIADO] == 2
-        assert CategoricalEncoder.ESTADO_CIVIL_MAP[EstadoCivilEnum.VIUDO] == 3
+        assert CategoricalEncoder.MARITAL_STATUS_MAP[MaritalStatusEnum.SINGLE] == 0
+        assert CategoricalEncoder.MARITAL_STATUS_MAP[MaritalStatusEnum.MARRIED] == 1
+        assert CategoricalEncoder.MARITAL_STATUS_MAP[MaritalStatusEnum.DIVORCED] == 2
+        assert CategoricalEncoder.MARITAL_STATUS_MAP[MaritalStatusEnum.WIDOWED] == 3
 
-    def test_encode_educacion(self):
+    def test_encode_education(self):
         """Education level map has correct ordinal codes."""
-        assert CategoricalEncoder.EDUCACION_MAP[EducacionEnum.SIN_ESTUDIOS] == 0
-        assert CategoricalEncoder.EDUCACION_MAP[EducacionEnum.POSGRADO] == 6
+        assert CategoricalEncoder.EDUCATION_MAP[EducationEnum.NO_STUDIES] == 0
+        assert CategoricalEncoder.EDUCATION_MAP[EducationEnum.POSTGRADUATE] == 6
 
     def test_encode_request_shape(self, sample_loan_request):
         """Encoded request produces shape (1, 19) float32 array."""
@@ -51,16 +51,16 @@ class TestCategoricalEncoder:
         """Specific categorical values are encoded to their expected integers."""
         X = CategoricalEncoder.encode_request(sample_loan_request.model_dump())
         encoded_row = X[0]
-        assert encoded_row[1] == 0  # Genero: Mujer → 0
-        assert encoded_row[2] == 1  # Estado_Civil: Casado → 1
-        assert encoded_row[3] == 5  # Educacion: Grado → 5
+        assert encoded_row[1] == 0  # gender: Mujer → 0
+        assert encoded_row[2] == 1  # maritalStatus: Casado → 1
+        assert encoded_row[3] == 5  # education: Grado → 5
 
     def test_feature_order(self):
-        """Feature list contains 19 features starting with Edad, ending with Num_Moras_Previas."""
+        """Feature list contains 19 features starting with age, ending with previousDefaultsCount."""
         features = CategoricalEncoder.get_feature_names()
         assert len(features) == 19
-        assert features[0] == "Edad"
-        assert features[-1] == "Num_Moras_Previas"
+        assert features[0] == "age"
+        assert features[-1] == "previousDefaultsCount"
 
 
 # ==================== InferenceService Unit Tests ====================
@@ -100,11 +100,11 @@ class TestInferenceService:
         explanations = service._extract_top_features(shap_values, base_value=0.2)
 
         assert len(explanations) == 5
-        assert explanations[0].feature == "Edad"
+        assert explanations[0].feature == "age"
         assert explanations[0].impact == pytest.approx(0.12)
         assert explanations[0].direction == "increase"
 
-        assert explanations[1].feature == "Genero"
+        assert explanations[1].feature == "gender"
         assert explanations[1].impact == pytest.approx(0.08)
         assert explanations[1].direction == "decrease"
 

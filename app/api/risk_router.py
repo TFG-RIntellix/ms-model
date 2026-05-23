@@ -118,7 +118,7 @@ async def predict_loan(
     Returns:
         ``PredictionResponse`` with PD, segment, and explanations.
     """
-    logger.info("Prediction request for loan application from %s", request.genero)
+    logger.info("Prediction request for loan application from %s", request.gender)
 
     response = await service.predict_loan(request)
 

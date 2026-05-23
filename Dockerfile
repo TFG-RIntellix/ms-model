@@ -33,6 +33,10 @@ RUN useradd -m -u 1000 appuser
 # Copy installed packages and console scripts into runtime
 COPY --from=builder /install /usr/local
 
+# Defensive install and verification to guarantee runtime imports and entrypoints
+RUN pip install --no-cache-dir packaging "uvicorn[standard]==0.24.0" && \
+    python -c "import packaging, uvicorn; print('packaging and uvicorn available')"
+
 # Copy application code
 COPY --chown=appuser:appuser app/ ./app/
 
@@ -41,7 +45,7 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)" || exit 1
 
 # Expose port
 EXPOSE 8000
