@@ -102,7 +102,7 @@ NUMERIC_FEATURES: List[str] = [
 # Target column name
 # ---------------------------------------------------------------------------
 
-TARGET_COLUMN: str = "Target_PD"
+TARGET_COLUMN: str = "target_PD"
 
 # CSV column name to feature name mapping (for data loading)
 CSV_COLUMN_MAPPING: Dict[str, str] = {
