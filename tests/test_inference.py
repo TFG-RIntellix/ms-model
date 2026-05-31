@@ -105,7 +105,7 @@ class TestInferenceService:
         assert explanations[0].direction == "increase"
 
         assert explanations[1].feature == "gender"
-        assert explanations[1].impact == pytest.approx(0.08)
+        assert explanations[1].impact == pytest.approx(-0.08)
         assert explanations[1].direction == "decrease"
 
     def test_extract_top_features_sorted(self, mock_model_manager):
@@ -113,8 +113,8 @@ class TestInferenceService:
         service = InferenceService(mock_model_manager)
         shap_values = np.array([[0.01, 0.10, -0.05] + [0.0] * 16])
         explanations = service._extract_top_features(shap_values, base_value=0.2)
-        impacts = [e.impact for e in explanations]
-        assert impacts == sorted(impacts, reverse=True)
+        magnitudes = [abs(e.impact) for e in explanations]
+        assert magnitudes == sorted(magnitudes, reverse=True)
 
 
 # ==================== Integration Tests ====================
@@ -123,6 +123,14 @@ class TestInferenceService:
 async def test_predict_loan_full_flow(mock_model_manager, sample_loan_request):
     """InferenceService initialises correctly with a mock model manager."""
     mock_model_manager.loan_model.predict.return_value = np.array([0.25])
+    mock_model_manager.explainer = Mock()
+    mock_model_manager.explainer.shap_values.return_value = np.zeros((1, 19))
+    mock_model_manager.explainer.expected_value = 0.0
+
     service = InferenceService(mock_model_manager)
+    response = await service.predict_loan(sample_loan_request)
+
     assert service.feature_names is not None
     assert len(service.feature_names) == 19
+    assert response.probability_of_default == pytest.approx(0.25, rel=1e-4)
+    assert response.risk_segment == "Medium"

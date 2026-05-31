@@ -48,56 +48,56 @@ class CategoricalEncoder:
         If the training data changes, both must be updated together.
     """
 
-    # Mapping: enum value → integer code (MUST match LabelEncoder order)
+    # Mapping: enum value → integer code (must match the fitted TrainingEncoder)
     GENDER_MAP: Dict[GenderEnum, int] = {
-        GenderEnum.FEMALE: 0,
-        GenderEnum.MALE: 1,
+        GenderEnum.MALE: 0,
+        GenderEnum.FEMALE: 1,
         GenderEnum.OTHER: 2,
     }
 
     MARITAL_STATUS_MAP: Dict[MaritalStatusEnum, int] = {
-        MaritalStatusEnum.SINGLE: 0,
-        MaritalStatusEnum.MARRIED: 1,
-        MaritalStatusEnum.DIVORCED: 2,
+        MaritalStatusEnum.MARRIED: 0,
+        MaritalStatusEnum.DIVORCED: 1,
+        MaritalStatusEnum.SINGLE: 2,
         MaritalStatusEnum.WIDOWED: 3,
     }
 
     EDUCATION_MAP: Dict[EducationEnum, int] = {
-        EducationEnum.NO_STUDIES: 0,
-        EducationEnum.PRIMARY: 1,
-        EducationEnum.SECONDARY: 2,
-        EducationEnum.HIGH_SCHOOL: 3,
-        EducationEnum.VOCATIONAL: 4,
-        EducationEnum.DEGREE: 5,
-        EducationEnum.POSTGRADUATE: 6,
+        EducationEnum.HIGH_SCHOOL: 0,
+        EducationEnum.VOCATIONAL: 1,
+        EducationEnum.DEGREE: 2,
+        EducationEnum.POSTGRADUATE: 3,
+        EducationEnum.PRIMARY: 4,
+        EducationEnum.SECONDARY: 5,
+        EducationEnum.NO_STUDIES: 6,
     }
 
     EMPLOYMENT_STATUS_MAP: Dict[EmploymentStatusEnum, int] = {
-        EmploymentStatusEnum.PERMANENT: 0,
-        EmploymentStatusEnum.TEMPORARY: 1,
-        EmploymentStatusEnum.SELF_EMPLOYED: 2,
-        EmploymentStatusEnum.CIVIL_SERVANT: 3,
-        EmploymentStatusEnum.UNEMPLOYED: 4,
-        EmploymentStatusEnum.INACTIVE: 5,
+        EmploymentStatusEnum.SELF_EMPLOYED: 0,
+        EmploymentStatusEnum.UNEMPLOYED: 1,
+        EmploymentStatusEnum.CIVIL_SERVANT: 2,
+        EmploymentStatusEnum.INACTIVE: 3,
+        EmploymentStatusEnum.PERMANENT: 4,
+        EmploymentStatusEnum.TEMPORARY: 5,
     }
 
     OCCUPATION_SECTOR_MAP: Dict[OccupationSectorEnum, int] = {
-        OccupationSectorEnum.PUBLIC_SECTOR: 0,
-        OccupationSectorEnum.HEALTHCARE: 1,
+        OccupationSectorEnum.AGRICULTURE: 0,
+        OccupationSectorEnum.CONSTRUCTION: 1,
         OccupationSectorEnum.EDUCATION: 2,
         OccupationSectorEnum.HOSPITALITY: 3,
-        OccupationSectorEnum.SALES: 4,
-        OccupationSectorEnum.TECHNOLOGY: 5,
-        OccupationSectorEnum.CONSTRUCTION: 6,
-        OccupationSectorEnum.AGRICULTURE: 7,
-        OccupationSectorEnum.OTHER: 8,
+        OccupationSectorEnum.OTHER: 4,
+        OccupationSectorEnum.HEALTHCARE: 5,
+        OccupationSectorEnum.PUBLIC_SECTOR: 6,
+        OccupationSectorEnum.TECHNOLOGY: 7,
+        OccupationSectorEnum.SALES: 8,
     }
 
     HOME_OWNERSHIP_MAP: Dict[HomeOwnershipEnum, int] = {
-        HomeOwnershipEnum.OWNED_PAID: 0,
-        HomeOwnershipEnum.OWNED_MORTGAGED: 1,
-        HomeOwnershipEnum.RENTED: 2,
-        HomeOwnershipEnum.CEDED: 3,
+        HomeOwnershipEnum.RENTED: 0,
+        HomeOwnershipEnum.CEDED: 1,
+        HomeOwnershipEnum.OWNED_MORTGAGED: 2,
+        HomeOwnershipEnum.OWNED_PAID: 3,
     }
 
     HAS_MORTGAGE_MAP: Dict[HasMortgageEnum, int] = {
@@ -106,22 +106,22 @@ class CategoricalEncoder:
     }
 
     LOAN_TYPE_MAP: Dict[LoanTypeEnum, int] = {
-        LoanTypeEnum.MORTGAGE: 0,
-        LoanTypeEnum.PERSONAL: 1,
-        LoanTypeEnum.AUTO: 2,
-        LoanTypeEnum.CONSUMER: 3,
+        LoanTypeEnum.AUTO: 0,
+        LoanTypeEnum.CONSUMER: 1,
+        LoanTypeEnum.MORTGAGE: 2,
+        LoanTypeEnum.PERSONAL: 3,
     }
 
     LOAN_PURPOSE_MAP: Dict[LoanPurposeEnum, int] = {
-        LoanPurposeEnum.HOME_PURCHASE: 0,
-        LoanPurposeEnum.HOME_RENOVATION: 1,
-        LoanPurposeEnum.VEHICLE_PURCHASE: 2,
-        LoanPurposeEnum.HOME_IMPROVEMENT: 3,
-        LoanPurposeEnum.EDUCATION: 4,
-        LoanPurposeEnum.HEALTH: 5,
-        LoanPurposeEnum.DEBT_CONSOLIDATION: 6,
-        LoanPurposeEnum.TRAVEL: 7,
-        LoanPurposeEnum.OTHER: 8,
+        LoanPurposeEnum.VEHICLE_PURCHASE: 0,
+        LoanPurposeEnum.HOME_PURCHASE: 1,
+        LoanPurposeEnum.DEBT_CONSOLIDATION: 2,
+        LoanPurposeEnum.EDUCATION: 3,
+        LoanPurposeEnum.HOME_IMPROVEMENT: 6,
+        LoanPurposeEnum.OTHER: 5,
+        LoanPurposeEnum.HOME_RENOVATION: 7,
+        LoanPurposeEnum.HEALTH: 8,
+        LoanPurposeEnum.TRAVEL: 10,
     }
 
     @staticmethod

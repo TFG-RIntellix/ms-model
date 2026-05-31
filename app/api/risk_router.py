@@ -13,9 +13,9 @@ from typing import Annotated
 from fastapi import APIRouter, status, Body, Request, Depends
 
 from app.core.settings import get_settings
-from app.core.features import FEATURE_ORDER
 from app.schemas.requests import LoanApplicationRequest, CreditCardApplicationRequest
 from app.schemas.responses import PredictionResponse, ModelInfoResponse, ErrorResponse
+from app.services.encoder import CategoricalEncoder
 from app.services.inference import InferenceService, get_inference_service
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ async def model_info(request: Request) -> ModelInfoResponse:
         app_version=_settings.APP_VERSION,
         model_loaded=model_manager.model_loaded if model_manager else False,
         boosting_rounds=boosting_rounds,
-        feature_names=list(FEATURE_ORDER),
+        feature_names=CategoricalEncoder.get_feature_names(),
         scaler_loaded=model_manager.scaler_loaded if model_manager else False,
         encoder_loaded=model_manager.encoder_loaded if model_manager else False,
         model_artifact_date=model_artifact_date,

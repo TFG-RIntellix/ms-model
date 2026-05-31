@@ -14,8 +14,10 @@ import logging
 import asyncio
 
 import numpy as np
+import pandas as pd
 import xgboost as xgb
 
+from app.core.features import FEATURE_ORDER
 from app.schemas.models import (
     LoanApplicationRequest, PredictionResponse, SHAPExplanation
 )
@@ -66,8 +68,9 @@ class InferenceService:
         Raises:
             RuntimeError: If the model is not loaded and cannot predict.
         """
-        # Encode categorical fields of the request into numerical ones 
-        X = CategoricalEncoder.encode_request(request.model_dump())
+        # Encode using the persisted training encoder when available so the
+        # categorical codes match the training artefact exactly.
+        X = self._encode_request(request)
 
         # It scales the numerical fields of the request to be in the same range as the treated training data in the model. 
         # This is done to improve the model's performance.
@@ -91,6 +94,18 @@ class InferenceService:
     # Private helpers
     # ------------------------------------------------------------------
 
+    def _encode_request(self, request: LoanApplicationRequest) -> np.ndarray:
+        """Encode request data using the training encoder when possible."""
+        request_df = pd.DataFrame([request.model_dump(mode="json")])
+
+        if self.encoder is not None:
+            encoded_df = self.encoder.transform(request_df[FEATURE_ORDER])
+            return encoded_df[FEATURE_ORDER].values.astype(np.float32)
+
+        # Fallback for placeholder/test scenarios where the persisted encoder
+        # is not available.
+        return CategoricalEncoder.encode_request(request.model_dump())
+
     async def _predict(self, X: np.ndarray) -> float:
         """Execute ``model.predict()`` in a thread pool.
 
@@ -104,8 +119,8 @@ class InferenceService:
             if self.model is not None:
                 dmatrix = xgb.DMatrix(X, feature_names=self.feature_names)
                 predictions = self.model.predict(dmatrix)
-                pd_value = float(predictions[0])
-                logger.info("Prediction: PD=%.4f", pd_value)
+                pd_value = float(1.0 / (1.0 + np.exp(-np.clip(predictions[0], -30.0, 30.0))))
+                logger.info("Prediction: PD=%.6f", pd_value)
                 return pd_value
             else:
                 raise RuntimeError("Model not loaded")

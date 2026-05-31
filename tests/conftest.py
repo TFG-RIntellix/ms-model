@@ -32,7 +32,8 @@ from app.schemas.requests import LoanApplicationRequest
 @pytest.fixture
 def client():
     """Create a ``TestClient`` for the FastAPI application."""
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 # ------------------------------------------------------------------
