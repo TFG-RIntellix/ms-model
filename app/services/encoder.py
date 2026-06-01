@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 
 import numpy as np
 
-from app.core.features import FEATURE_ORDER
+from app.core.features import FEATURE_ORDER, CREDIT_CARD_FEATURE_ORDER
 from app.schemas.enums import (
     GenderEnum,
     MaritalStatusEnum,
@@ -30,6 +30,10 @@ from app.schemas.enums import (
     HasMortgageEnum,
     LoanTypeEnum,
     LoanPurposeEnum,
+    CreditCardEmploymentStatusEnum,
+    CreditCardIncomeTypeEnum,
+    CreditCardHomeOwnershipEnum,
+    CreditCardIsRevolvingEnum,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,6 +128,38 @@ class CategoricalEncoder:
         LoanPurposeEnum.TRAVEL: 10,
     }
 
+    # =====================================================================
+    # Credit Card Specific Mappings
+    # =====================================================================
+
+    CREDIT_CARD_EMPLOYMENT_STATUS_MAP: Dict[CreditCardEmploymentStatusEnum, int] = {
+        CreditCardEmploymentStatusEnum.SELF_EMPLOYED: 0,
+        CreditCardEmploymentStatusEnum.UNEMPLOYED: 1,
+        CreditCardEmploymentStatusEnum.CIVIL_SERVANT: 2,
+        CreditCardEmploymentStatusEnum.INACTIVE: 3,
+        CreditCardEmploymentStatusEnum.PERMANENT: 4,
+        CreditCardEmploymentStatusEnum.TEMPORARY: 5,
+    }
+
+    CREDIT_CARD_INCOME_TYPE_MAP: Dict[CreditCardIncomeTypeEnum, int] = {
+        CreditCardIncomeTypeEnum.SALARY: 0,
+        CreditCardIncomeTypeEnum.SELF_EMPLOYED: 1,
+        CreditCardIncomeTypeEnum.PENSION: 2,
+        CreditCardIncomeTypeEnum.BENEFITS: 3,
+    }
+
+    CREDIT_CARD_HOME_OWNERSHIP_MAP: Dict[CreditCardHomeOwnershipEnum, int] = {
+        CreditCardHomeOwnershipEnum.RENTED: 0,
+        CreditCardHomeOwnershipEnum.CEDED: 1,
+        CreditCardHomeOwnershipEnum.OWNED_MORTGAGED: 2,
+        CreditCardHomeOwnershipEnum.OWNED_PAID: 3,
+    }
+
+    CREDIT_CARD_IS_REVOLVING_MAP: Dict[CreditCardIsRevolvingEnum, int] = {
+        CreditCardIsRevolvingEnum.NO: 0,
+        CreditCardIsRevolvingEnum.YES: 1,
+    }
+
     @staticmethod
     def encode_request(request_data: Dict[str, Any]) -> np.ndarray:
         """Encode a loan application request dict into a feature array.
@@ -178,6 +214,53 @@ class CategoricalEncoder:
         return np.array([feature_vector], dtype=np.float32)
 
     @staticmethod
+    def encode_credit_card_request(request_data: Dict[str, Any]) -> np.ndarray:
+        """Encode a credit card application request dict into a feature array.
+
+        Maps every field in ``request_data`` to its numeric representation
+        and assembles the result in ``CREDIT_CARD_FEATURE_ORDER`` so it matches
+        the column order expected by the XGBoost model.
+
+        Args:
+            request_data: Dictionary of request fields as produced by
+                ``CreditCardApplicationRequest.model_dump()``.
+
+        Returns:
+            ``np.ndarray`` of shape ``(1, n_features)`` and dtype
+            ``np.float32``, ready to be passed to the model.
+
+        Raises:
+            KeyError: If a required field is absent from ``request_data``
+                or its value is not in the corresponding mapping dict.
+        """
+        encoded: Dict[str, Any] = {
+            "age": request_data.get("age"),
+            "employmentStatus": CategoricalEncoder.CREDIT_CARD_EMPLOYMENT_STATUS_MAP[
+                request_data.get("employmentStatus")
+            ],
+            "workSeniority": request_data.get("workSeniority"),
+            "annualIncome": request_data.get("annualIncome"),
+            "incomeType": CategoricalEncoder.CREDIT_CARD_INCOME_TYPE_MAP[
+                request_data.get("incomeType")
+            ],
+            "homeOwnership": CategoricalEncoder.CREDIT_CARD_HOME_OWNERSHIP_MAP[
+                request_data.get("homeOwnership")
+            ],
+            "dependents": request_data.get("dependents"),
+            "creditLimit": request_data.get("creditLimit"),
+            "isRevolving": CategoricalEncoder.CREDIT_CARD_IS_REVOLVING_MAP[
+                request_data.get("isRevolving")
+            ],
+            "interestRate": request_data.get("interestRate"),
+            "creditLimitToIncomeRatio": request_data.get("creditLimitToIncomeRatio"),
+            "dti": request_data.get("dti"),
+            "previousDefaults": request_data.get("previousDefaults"),
+        }
+
+        feature_vector = [encoded[feature] for feature in CREDIT_CARD_FEATURE_ORDER]
+        return np.array([feature_vector], dtype=np.float32)
+
+    @staticmethod
     def get_feature_names() -> List[str]:
         """Return feature names in the model's expected column order.
 
@@ -185,3 +268,12 @@ class CategoricalEncoder:
             List of feature name strings matching ``FEATURE_ORDER``.
         """
         return list(FEATURE_ORDER)
+
+    @staticmethod
+    def get_credit_card_feature_names() -> List[str]:
+        """Return credit card feature names in the model's expected column order.
+
+        Returns:
+            List of feature name strings matching ``CREDIT_CARD_FEATURE_ORDER``.
+        """
+        return list(CREDIT_CARD_FEATURE_ORDER)

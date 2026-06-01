@@ -16,6 +16,10 @@ from app.schemas.enums import (
     HasMortgageEnum,
     LoanTypeEnum,
     LoanPurposeEnum,
+    CreditCardEmploymentStatusEnum,
+    CreditCardIncomeTypeEnum,
+    CreditCardHomeOwnershipEnum,
+    CreditCardIsRevolvingEnum,
 )
 
 
@@ -90,14 +94,61 @@ class LoanApplicationRequest(BaseModel):
 class CreditCardApplicationRequest(BaseModel):
     """Credit card application request model.
 
-    Placeholder schema — features pending definition.
-
-    Note:
-        This schema will be expanded with credit-card-specific features
-        such as credit history, spending patterns, and card type
-        preferences once the business requirements are finalised.
+    Enforces strict validation matching the credit card training dataset
+    feature definitions and value ranges.
     """
 
-    age: int = Field(..., ge=18, le=80, description="Age")
-    gender: GenderEnum = Field(..., description="Gender")
-    annualIncome: float = Field(..., gt=0, description="Annual income")
+    age: int = Field(..., ge=18, le=80, description="Age (18-80)")
+    employmentStatus: CreditCardEmploymentStatusEnum = Field(
+        ..., description="Employment status"
+    )
+    employmentSeniorityYears: int = Field(
+        ..., ge=0, le=50, description="Work seniority in years (0-50)"
+    )
+    annualIncome: float = Field(
+        ..., gt=0, description="Annual income (must be positive)"
+    )
+    incomeType: CreditCardIncomeTypeEnum = Field(..., description="Income type")
+    homeOwnership: CreditCardHomeOwnershipEnum = Field(..., description="Housing type")
+    dependents: int = Field(
+        ..., ge=0, le=10, description="Number of dependents (0-10)"
+    )
+    creditLimit: float = Field(
+        ..., gt=0, description="Credit card limit (must be positive)"
+    )
+    isRevolving: CreditCardIsRevolvingEnum = Field(
+        ..., description="Is revolving credit"
+    )
+    interestRate: float = Field(
+        ..., ge=0, le=1, description="Interest rate (0-1)"
+    )
+    lti: float = Field(
+        ..., ge=0, le=10, description="Loan-to-income ratio"
+    )
+    dti: float = Field(..., ge=0, le=1, description="Debt-to-Income ratio (0-1)")
+    previousDefaultsCount: int = Field(
+        ..., ge=0, description="Number of previous defaults"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "age": 41,
+                    "employmentStatus": "Indefinido",
+                    "employmentSeniorityYears": 12,
+                    "annualIncome": 56079.61,
+                    "incomeType": "Salario",
+                    "homeOwnership": "Propia_Hipoteca",
+                    "dependents": 0,
+                    "creditLimit": 19000.0,
+                    "isRevolving": "Si",
+                    "interestRate": 0.2489,
+                    "lti": 0.3388,
+                    "dti": 0.1626,
+                    "previousDefaultsCount": 0,
+                }
+            ]
+        }
+    }
+

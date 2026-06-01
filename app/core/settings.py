@@ -56,6 +56,11 @@ class Settings(BaseSettings):
     ENCODER_PATH: str = "app/ml_artifacts/encoder.pkl"
     SCALER_PATH: str = "app/ml_artifacts/scaler.pkl"
 
+    # Credit card model paths
+    CREDIT_CARD_MODEL_PATH: str = "app/ml_artifacts/credit_card_model.json"
+    CREDIT_CARD_ENCODER_PATH: str = "app/ml_artifacts/credit_card_encoder.pkl"
+    CREDIT_CARD_SCALER_PATH: str = "app/ml_artifacts/credit_card_scaler.pkl"
+
     # API settings
     API_V1_PREFIX: str = "/api/v1"
 

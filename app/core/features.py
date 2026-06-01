@@ -99,6 +99,50 @@ NUMERIC_FEATURES: List[str] = [
 ]
 
 # ---------------------------------------------------------------------------
+# CREDIT CARD MODEL FEATURES
+# ---------------------------------------------------------------------------
+
+CREDIT_CARD_FEATURE_ORDER: List[str] = [
+    "age",
+    "employmentStatus",
+    "employmentSeniorityYears",
+    "annualIncome",
+    "incomeType",
+    "homeOwnership",
+    "dependents",
+    "creditLimit",
+    "isRevolving",
+    "interestRate",
+    "lti",
+    "dti",
+    "previousDefaultsCount",
+]
+
+# Credit card categorical features and their allowed values
+CREDIT_CARD_CATEGORICAL_FEATURES: Dict[str, List[str]] = {
+    "employmentStatus": [
+        "Indefinido",
+        "Temporal",
+        "Autonomo",
+        "Funcionario",
+        "Desempleado",
+        "Inactivo",
+    ],
+    "incomeType": ["Salario", "Autonomo", "Pension", "Ayudas"],
+    "homeOwnership": ["Propia_Pagada", "Propia_Hipoteca", "Alquiler", "Cedida"],
+    "isRevolving": ["Si", "No"],
+}
+
+# Credit card numeric features
+CREDIT_CARD_NUMERIC_FEATURES: List[str] = [
+    f for f in CREDIT_CARD_FEATURE_ORDER
+    if f not in CREDIT_CARD_CATEGORICAL_FEATURES
+]
+
+# Credit card target variable
+CREDIT_CARD_TARGET_COLUMN = "target_PD"
+
+# ---------------------------------------------------------------------------
 # Target column name
 # ---------------------------------------------------------------------------
 

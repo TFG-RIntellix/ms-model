@@ -99,3 +99,44 @@ class LoanPurposeEnum(str, Enum):
     DEBT_CONSOLIDATION = "Consolidacion_Deuda"
     TRAVEL = "Viajes"
     OTHER = "Otros"
+
+
+# ---------------------------------------------------------------------------
+# Credit Card Specific Enums
+# ---------------------------------------------------------------------------
+
+
+class CreditCardEmploymentStatusEnum(str, Enum):
+    """Employment situation categories (for credit cards)."""
+
+    PERMANENT = "Indefinido"
+    TEMPORARY = "Temporal"
+    SELF_EMPLOYED = "Autonomo"
+    CIVIL_SERVANT = "Funcionario"
+    UNEMPLOYED = "Desempleado"
+    INACTIVE = "Inactivo"
+
+
+class CreditCardIncomeTypeEnum(str, Enum):
+    """Income type categories (for credit cards)."""
+
+    SALARY = "Salario"
+    SELF_EMPLOYED = "Autonomo"
+    PENSION = "Pension"
+    BENEFITS = "Ayudas"
+
+
+class CreditCardHomeOwnershipEnum(str, Enum):
+    """Housing type categories (for credit cards)."""
+
+    OWNED_PAID = "Propia_Pagada"
+    OWNED_MORTGAGED = "Propia_Hipoteca"
+    RENTED = "Alquiler"
+    CEDED = "Cedida"
+
+
+class CreditCardIsRevolvingEnum(str, Enum):
+    """Revolving credit status."""
+
+    YES = "Si"
+    NO = "No"

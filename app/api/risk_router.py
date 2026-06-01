@@ -131,36 +131,49 @@ async def predict_loan(
 
 
 # ------------------------------------------------------------------
-# Credit card risk prediction (placeholder)
+# Credit card risk prediction
 # ------------------------------------------------------------------
 
 @router.post(
     "/predict-credit-card",
-    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+    response_model=PredictionResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         422: {"model": ErrorResponse, "description": "Validation error"},
+        500: {"model": ErrorResponse, "description": "Server error"},
     },
-    summary="Predict Credit Card Risk (Placeholder)",
-    description="Placeholder endpoint for credit card risk assessment. Implementation pending.",
+    summary="Predict Credit Card Risk",
+    description=(
+        "Calculate probability of default and SHAP explanations "
+        "for a credit card application."
+    ),
 )
 async def predict_credit_card(
     request: CreditCardApplicationRequest,
-) -> dict:
-    """Credit card risk prediction endpoint (PLACEHOLDER).
+    service: InferenceService = Depends(get_inference_service),
+) -> PredictionResponse:
+    """Credit card risk prediction endpoint.
 
-    This endpoint is reserved for future credit card risk assessment.
-    The schema and ML model for credit cards are pending definition.
+    Accepts a credit card application and returns:
+
+    - Probability of Default (0–1).
+    - Risk segment (*Low* / *Medium* / *High*).
+    - Top 5 SHAP feature explanations.
 
     Args:
-        request: Placeholder credit card application.
+        request: Validated credit card application details.
+        service: Injected inference service instance.
 
     Returns:
-        Placeholder response indicating feature set is pending.
+        ``PredictionResponse`` with PD, segment, and explanations.
     """
-    logger.info("Credit card prediction requested — feature set pending")
+    logger.info("Prediction request for credit card application")
 
-    return {
-        "status": "pending",
-        "message": "Credit card risk assessment model is under development",
-        "next_update": "To be announced",
-    }
+    response = await service.predict_credit_card(request)
+
+    logger.info(
+        "Credit card prediction completed: PD=%.3f, Segment=%s",
+        response.probability_of_default,
+        response.risk_segment,
+    )
+    return response
