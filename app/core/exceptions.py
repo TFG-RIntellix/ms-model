@@ -7,9 +7,11 @@ in production.
 import logging
 
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+
+from app.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +59,15 @@ async def general_exception_handler(
         request_id, type(exc).__name__, str(exc),
         exc_info=True,
     )
+    content: dict = {
+        "detail": "An internal server error occurred. Please try again later.",
+        "request_id": request_id,
+    }
+    if get_settings().DEBUG:
+        content["error_type"] = type(exc).__name__
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "detail": "An internal server error occurred. Please try again later.",
-            "error_type": type(exc).__name__,
-            "request_id": request_id,
-        },
+        content=content,
     )
 
 

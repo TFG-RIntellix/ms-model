@@ -59,6 +59,9 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
         openapi_tags=OPENAPI_TAGS,
+        docs_url="/docs" if settings.DEBUG else None,
+        redoc_url="/redoc" if settings.DEBUG else None,
+        openapi_url="/openapi.json" if settings.DEBUG else None,
     )
 
     # ------------------------------------------------------------------
@@ -91,13 +94,16 @@ def create_app() -> FastAPI:
         return response
 
     # ------------------------------------------------------------------
-    # CORS — origins come from Settings (safe in production)
+    # CORS — origins come from Settings; credentials only when
+    #         specific origins are configured (never with wildcard).
     # ------------------------------------------------------------------
+    _origins = settings.CORS_ORIGINS
+    _allow_credentials = _origins != ["*"] and len(_origins) > 0
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
+        allow_origins=_origins,
+        allow_credentials=_allow_credentials,
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
 
@@ -128,12 +134,14 @@ def create_app() -> FastAPI:
     @app.get("/", tags=["Info"], summary="API Information")
     async def root():
         """Return API information and documentation links."""
-        return {
+        info: dict = {
             "name": settings.APP_NAME,
             "version": settings.APP_VERSION,
-            "docs": "/docs",
-            "openapi_schema": "/openapi.json",
         }
+        if settings.DEBUG:
+            info["docs"] = "/docs"
+            info["openapi_schema"] = "/openapi.json"
+        return info
 
     logger.info(
         "FastAPI application created: %s v%s",

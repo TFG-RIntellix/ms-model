@@ -3,17 +3,59 @@ FastAPI application lifespan context manager.
 Handles model loading on startup and cleanup on shutdown.
 """
 
+import hashlib
+import hmac
 import logging
-from contextlib import asynccontextmanager
+import os
 import pickle
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 import xgboost as xgb
 from fastapi import FastAPI
-from pathlib import Path
 
 from app.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+_ARTIFACT_HMAC_KEY = os.environ.get("ARTIFACT_HMAC_KEY", "")
+
+
+def _safe_pickle_load(path: Path) -> object:
+    """Load a pickle file with optional HMAC-SHA256 integrity verification.
+
+    When ``ARTIFACT_HMAC_KEY`` is set, the function looks for a companion
+    ``.sig`` file (e.g. ``encoder.pkl.sig``) containing the hex-encoded
+    HMAC of the pickle bytes.  A mismatch aborts loading to prevent
+    tampered artifacts from executing arbitrary code via ``pickle.load``.
+
+    When the key is **not** set the artifact is loaded directly (with a
+    warning) so that existing development workflows are not broken.
+    """
+    raw = path.read_bytes()
+
+    if _ARTIFACT_HMAC_KEY:
+        sig_path = path.with_suffix(path.suffix + ".sig")
+        if not sig_path.exists():
+            raise FileNotFoundError(
+                f"HMAC signature file missing for {path}. "
+                "Generate one with: python -c \"import hmac, hashlib; "
+                "print(hmac.new(key, open(path,'rb').read(), hashlib.sha256).hexdigest())\""
+            )
+        expected = sig_path.read_text().strip()
+        actual = hmac.new(
+            _ARTIFACT_HMAC_KEY.encode(), raw, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected, actual):
+            raise ValueError(f"HMAC verification failed for {path} — artifact may be tampered")
+        logger.info("✓ HMAC verification passed for %s", path)
+    else:
+        logger.warning(
+            "⚠ Loading %s without integrity verification "
+            "(set ARTIFACT_HMAC_KEY to enable HMAC checks)", path
+        )
+
+    return pickle.loads(raw)  # noqa: S301
 
 
 class ModelManager:
@@ -82,8 +124,7 @@ class ModelManager:
             # --- Encoder ---
             encoder_path = Path(settings.ENCODER_PATH)
             if encoder_path.exists():
-                with open(encoder_path, "rb") as f:
-                    self.encoder = pickle.load(f)
+                self.encoder = _safe_pickle_load(encoder_path)
                 self.encoder_loaded = True
                 logger.info("✓ Loaded encoder from %s", encoder_path)
                 if hasattr(self.encoder, "encoders"):
@@ -96,8 +137,7 @@ class ModelManager:
             # --- Scaler ---
             scaler_path = Path(settings.SCALER_PATH)
             if scaler_path.exists():
-                with open(scaler_path, "rb") as f:
-                    self.scaler = pickle.load(f)
+                self.scaler = _safe_pickle_load(scaler_path)
                 self.scaler_loaded = True
                 logger.info("✓ Loaded scaler from %s", scaler_path)
             else:
@@ -140,8 +180,7 @@ class ModelManager:
             # --- Credit Card Encoder ---
             cc_encoder_path = Path(settings.CREDIT_CARD_ENCODER_PATH)
             if cc_encoder_path.exists():
-                with open(cc_encoder_path, "rb") as f:
-                    self.credit_card_encoder = pickle.load(f)
+                self.credit_card_encoder = _safe_pickle_load(cc_encoder_path)
                 self.credit_card_encoder_loaded = True
                 logger.info("✓ Loaded credit card encoder from %s", cc_encoder_path)
                 if hasattr(self.credit_card_encoder, "encoders"):
@@ -154,8 +193,7 @@ class ModelManager:
             # --- Credit Card Scaler ---
             cc_scaler_path = Path(settings.CREDIT_CARD_SCALER_PATH)
             if cc_scaler_path.exists():
-                with open(cc_scaler_path, "rb") as f:
-                    self.credit_card_scaler = pickle.load(f)
+                self.credit_card_scaler = _safe_pickle_load(cc_scaler_path)
                 self.credit_card_scaler_loaded = True
                 logger.info("✓ Loaded credit card scaler from %s", cc_scaler_path)
             else:

@@ -68,8 +68,9 @@ class Settings(BaseSettings):
     RISK_THRESHOLD_LOW: float = 0.15
     RISK_THRESHOLD_HIGH: float = 0.35
 
-    # CORS — override in production with specific origins
-    CORS_ORIGINS: list[str] = ["*"]
+    # CORS — MUST be overridden in production with specific origins.
+    # An empty default forces operators to configure allowed origins explicitly.
+    CORS_ORIGINS: list[str] = []
 
     model_config = {
         "env_file": ".env",

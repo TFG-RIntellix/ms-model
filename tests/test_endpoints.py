@@ -33,7 +33,6 @@ def test_root_endpoint(client: TestClient):
     data = response.json()
     assert "name" in data
     assert "version" in data
-    assert "docs" in data
 
 
 # ==================== Validation Tests ====================

@@ -34,7 +34,7 @@ RUN useradd -m -u 1000 appuser
 COPY --from=builder /install /usr/local
 
 # Defensive install and verification to guarantee runtime imports and entrypoints
-RUN pip install --no-cache-dir packaging "uvicorn[standard]==0.24.0" && \
+RUN pip install --no-cache-dir packaging "uvicorn[standard]>=0.24.0,<1.0.0" && \
     python -c "import packaging, uvicorn; print('packaging and uvicorn available')"
 
 # Copy application code
