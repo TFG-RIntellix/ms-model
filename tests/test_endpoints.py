@@ -41,35 +41,35 @@ def test_root_endpoint(client: TestClient):
 def test_predict_loan_missing_field(client: TestClient):
     """Missing required fields return 422 Unprocessable Entity."""
     payload = {
-        "edad": 35,
-        "genero": "Mujer",
+        "age": 35,
+        "gender": "Mujer",
         # Missing other required fields
     }
     response = client.post("/api/v1/risk/predict-loan", json=payload)
     assert response.status_code == 422
 
 
-def test_predict_loan_invalid_genero(client: TestClient, sample_loan_payload: dict):
-    """Invalid enum value for genero returns 422."""
-    sample_loan_payload["genero"] = "InvalidValue"
+def test_predict_loan_invalid_gender(client: TestClient, sample_loan_payload: dict):
+    """Invalid enum value for gender returns 422."""
+    sample_loan_payload["gender"] = "InvalidValue"
     response = client.post("/api/v1/risk/predict-loan", json=sample_loan_payload)
     assert response.status_code == 422
 
 
-def test_predict_loan_edad_out_of_range(client: TestClient, sample_loan_payload: dict):
+def test_predict_loan_age_out_of_range(client: TestClient, sample_loan_payload: dict):
     """Age below 18 or above 80 returns 422."""
-    sample_loan_payload["edad"] = 150
+    sample_loan_payload["age"] = 150
     response = client.post("/api/v1/risk/predict-loan", json=sample_loan_payload)
     assert response.status_code == 422
 
-    sample_loan_payload["edad"] = 10
+    sample_loan_payload["age"] = 10
     response = client.post("/api/v1/risk/predict-loan", json=sample_loan_payload)
     assert response.status_code == 422
 
 
 def test_predict_loan_negative_income(client: TestClient, sample_loan_payload: dict):
     """Negative annual income returns 422."""
-    sample_loan_payload["ingresos_anuales"] = -1000
+    sample_loan_payload["annualIncome"] = -1000
     response = client.post("/api/v1/risk/predict-loan", json=sample_loan_payload)
     assert response.status_code == 422
 
@@ -138,15 +138,14 @@ def test_predict_loan_features_sorted_by_impact(client: TestClient, sample_loan_
 
 # ==================== Credit Card Endpoint Tests ====================
 
-def test_predict_credit_card_placeholder(client: TestClient):
-    """Credit card placeholder returns 501 Not Implemented."""
+def test_predict_credit_card_missing_fields(client: TestClient):
+    """Incomplete credit card payload returns 422 Unprocessable Entity."""
     payload = {
-        "edad": 35,
-        "genero": "Mujer",
-        "ingresos_anuales": 45000.0,
+        "age": 35,
+        "annualIncome": 45000.0,
     }
     response = client.post("/api/v1/risk/predict-credit-card", json=payload)
-    assert response.status_code == 501
+    assert response.status_code == 422
 
 
 # ==================== Error Handling Tests ====================
@@ -207,7 +206,7 @@ def test_model_info_risk_thresholds(client: TestClient):
 
 def test_validation_error_contains_request_id(client: TestClient):
     """422 error responses include a request_id in the body."""
-    payload = {"edad": 999}  # invalid — triggers validation error
+    payload = {"age": 999}  # invalid — triggers validation error
     response = client.post("/api/v1/risk/predict-loan", json=payload)
     assert response.status_code == 422
 
