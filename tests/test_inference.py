@@ -5,18 +5,24 @@ Shared fixtures (sample_loan_request, mock_model_manager) come from
 ``conftest.py``.
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock
 
+import numpy as np
+import pytest
+
 from app.schemas.enums import (
-    GenderEnum, MaritalStatusEnum, EducationEnum, EmploymentStatusEnum,
-    OccupationSectorEnum, HomeOwnershipEnum, HasMortgageEnum, LoanTypeEnum,
+    EducationEnum,
+    EmploymentStatusEnum,
+    GenderEnum,
+    HasMortgageEnum,
+    HomeOwnershipEnum,
     LoanPurposeEnum,
+    LoanTypeEnum,
+    MaritalStatusEnum,
+    OccupationSectorEnum,
 )
 from app.services.encoder import CategoricalEncoder
 from app.services.inference import InferenceService
-
 
 # ==================== Encoder Tests ====================
 
@@ -97,7 +103,9 @@ class TestInferenceService:
             0.01, 0.01, 0.01, 0.01, 0.01,
             0.01, 0.01, 0.01, 0.01,
         ]])
-        explanations = service._extract_top_features(shap_values, base_value=0.2)
+        explanations = service._extract_top_features(
+            shap_values, base_value=0.2, feature_names=service.feature_names
+        )
 
         assert len(explanations) == 5
         assert explanations[0].feature == "age"
@@ -112,7 +120,9 @@ class TestInferenceService:
         """Returned explanations are sorted by impact descending."""
         service = InferenceService(mock_model_manager)
         shap_values = np.array([[0.01, 0.10, -0.05] + [0.0] * 16])
-        explanations = service._extract_top_features(shap_values, base_value=0.2)
+        explanations = service._extract_top_features(
+            shap_values, base_value=0.2, feature_names=service.feature_names
+        )
         magnitudes = [abs(e.impact) for e in explanations]
         assert magnitudes == sorted(magnitudes, reverse=True)
 

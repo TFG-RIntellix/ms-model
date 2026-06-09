@@ -11,35 +11,36 @@ Typical usage::
     response = await service.predict_credit_card(request)
 """
 
-import logging
 import asyncio
+import logging
 
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from fastapi import Request
 
-from app.core.features import FEATURE_ORDER, CREDIT_CARD_FEATURE_ORDER
+from app.core.features import CREDIT_CARD_FEATURE_ORDER, FEATURE_ORDER
+from app.core.settings import get_settings
 from app.schemas.models import (
-    LoanApplicationRequest, CreditCardApplicationRequest, PredictionResponse, SHAPExplanation
+    CreditCardApplicationRequest,
+    LoanApplicationRequest,
+    PredictionResponse,
+    SHAPExplanation,
 )
 from app.services.encoder import CategoricalEncoder
-from app.core.settings import get_settings
-
-from fastapi import Request
 
 logger = logging.getLogger(__name__)
 
 
-# This class is the one who makes the predictions and SHAP explanations.
-# It's used by the risk router controller method.
 class InferenceService:
     """Service for model inference and risk assessment."""
-    
+
     def __init__(self, model_manager) -> None:
         """Initialise with a loaded model manager.
 
         Args:
             model_manager: ``ModelManager`` instance with loaded models.
+
         """
         # Loan model components
         self.model = model_manager.loan_model
@@ -76,30 +77,22 @@ class InferenceService:
 
         Raises:
             RuntimeError: If the model is not loaded and cannot predict.
+
         """
-        # Encode using the persisted training encoder when available so the
-        # categorical codes match the training artefact exactly.
         X = self._encode_request(request)
 
-        # It scales the numerical fields of the request to be in the same range as the treated training data in the model. 
-        # This is done to improve the model's performance.
-        if self.scaler is not None:
-            X = self.scaler.transform(X).astype(np.float32)
-
-        ## Call to private methods who make the prediction and SHAP explanations.
-        pd_value = await self._predict(X)
-        shap_values, base_value = await self._explain(X)
-
-        risk_segment = self._get_risk_segment(pd_value)
-        explanations = self._extract_top_features(shap_values, base_value)
-
-        return PredictionResponse(
-            probability_of_default=float(pd_value),
-            risk_segment=risk_segment,
-            shap_explanations=explanations,
+        return await self._predict_risk(
+            X=X,
+            model=self.model,
+            scaler=self.scaler,
+            explainer=self.explainer,
+            feature_names=self.feature_names,
+            label="loan",
         )
 
-    async def predict_credit_card(self, request: CreditCardApplicationRequest) -> PredictionResponse:
+    async def predict_credit_card(
+        self, request: CreditCardApplicationRequest,
+    ) -> PredictionResponse:
         """Predict credit card risk and generate SHAP explanations.
 
         Args:
@@ -111,20 +104,59 @@ class InferenceService:
 
         Raises:
             RuntimeError: If the credit card model is not loaded and cannot predict.
+
         """
-        # Encode using the persisted training encoder
         X = self._encode_credit_card_request(request)
 
-        # Scale numerical fields
-        if self.credit_card_scaler is not None:
-            X = self.credit_card_scaler.transform(X).astype(np.float32)
+        return await self._predict_risk(
+            X=X,
+            model=self.credit_card_model,
+            scaler=self.credit_card_scaler,
+            explainer=self.credit_card_explainer,
+            feature_names=self.credit_card_feature_names,
+            label="credit card",
+        )
 
-        # Make prediction and generate explanations
-        pd_value = await self._predict_credit_card(X)
-        shap_values, base_value = await self._explain_credit_card(X)
+    # ------------------------------------------------------------------
+    # Unified prediction pipeline
+    # ------------------------------------------------------------------
+
+    async def _predict_risk(
+        self,
+        X: np.ndarray,
+        model: xgb.Booster | None,
+        scaler,
+        explainer,
+        feature_names: list[str],
+        label: str,
+    ) -> PredictionResponse:
+        """Run the full prediction pipeline for any model type.
+
+        Applies scaling, model prediction, SHAP explanation, risk
+        segmentation, and top-feature extraction in a single flow.
+
+        Args:
+            X: Encoded feature array of shape ``(1, n_features)``.
+            model: Trained XGBoost ``Booster`` instance.
+            scaler: Fitted ``StandardScaler`` (or ``None``).
+            explainer: Pre-built SHAP ``TreeExplainer`` (or ``None``).
+            feature_names: Ordered feature names matching the model columns.
+            label: Human-readable model label for log messages.
+
+        Returns:
+            ``PredictionResponse`` with PD, risk segment, and SHAP explanations.
+
+        """
+        if scaler is not None:
+            X = scaler.transform(X).astype(np.float32)
+
+        pd_value = await self._run_prediction(model, feature_names, X, label)
+        shap_values, base_value = await self._run_explanation(
+            model, explainer, X, label
+        )
 
         risk_segment = self._get_risk_segment(pd_value)
-        explanations = self._extract_top_features_credit_card(shap_values, base_value)
+        explanations = self._extract_top_features(shap_values, base_value, feature_names)
 
         return PredictionResponse(
             probability_of_default=float(pd_value),
@@ -137,196 +169,164 @@ class InferenceService:
     # ------------------------------------------------------------------
 
     def _encode_request(self, request: LoanApplicationRequest) -> np.ndarray:
-        """Encode request data using the training encoder when possible."""
+        """Encode loan request data using the training encoder when possible."""
+        return self._encode_with_training_encoder(
+            request=request,
+            encoder=self.encoder,
+            feature_order=FEATURE_ORDER,
+            fallback_fn=lambda req: CategoricalEncoder.encode_request(req.model_dump()),
+        )
+
+    def _encode_credit_card_request(self, request: CreditCardApplicationRequest) -> np.ndarray:
+        """Encode credit card request data using the training encoder."""
+        return self._encode_with_training_encoder(
+            request=request,
+            encoder=self.credit_card_encoder,
+            feature_order=CREDIT_CARD_FEATURE_ORDER,
+            fallback_fn=None,
+        )
+
+    @staticmethod
+    def _encode_with_training_encoder(
+        request, encoder, feature_order, fallback_fn=None,
+    ) -> np.ndarray:
+        """Encode a request using the persisted training encoder.
+
+        Falls back to ``fallback_fn`` when no encoder is available. If
+        neither is available, raises ``RuntimeError``.
+
+        Args:
+            request: Pydantic request model instance.
+            encoder: Fitted ``TrainingEncoder`` (or ``None``).
+            feature_order: Column order expected by the model.
+            fallback_fn: Callable accepting the request, returning an ndarray.
+
+        Returns:
+            ``np.ndarray`` of shape ``(1, n_features)`` with dtype ``float32``.
+
+        """
         request_df = pd.DataFrame([request.model_dump(mode="json")])
 
-        if self.encoder is not None:
-            encoded_df = self.encoder.transform(request_df[FEATURE_ORDER])
-            return encoded_df[FEATURE_ORDER].values.astype(np.float32)
+        if encoder is not None:
+            encoded_df = encoder.transform(request_df[feature_order])
+            return encoded_df[feature_order].values.astype(np.float32)
 
-        # Fallback for placeholder/test scenarios where the persisted encoder
-        # is not available.
-        return CategoricalEncoder.encode_request(request.model_dump())
+        if fallback_fn is not None:
+            return fallback_fn(request)
 
-    async def _predict(self, X: np.ndarray) -> float:
+        raise RuntimeError("Encoder not loaded")
+
+    async def _run_prediction(
+        self,
+        model: xgb.Booster | None,
+        feature_names: list[str],
+        X: np.ndarray,
+        label: str,
+    ) -> float:
         """Execute ``model.predict()`` in a thread pool.
 
         Args:
+            model: XGBoost Booster to use for prediction.
+            feature_names: Feature names for the DMatrix.
             X: Encoded (and optionally scaled) feature array.
+            label: Human-readable label for log messages.
 
         Returns:
             Probability of default clamped to ``[0, 1]``.
+
         """
         def _model_predict() -> float:
-            if self.model is not None:
-                dmatrix = xgb.DMatrix(X, feature_names=self.feature_names)
-                predictions = self.model.predict(dmatrix)
-                pd_value = float(1.0 / (1.0 + np.exp(-np.clip(predictions[0], -30.0, 30.0))))
-                logger.info("Prediction: PD=%.6f", pd_value)
-                return pd_value
-            else:
-                raise RuntimeError("Model not loaded")
-        return await asyncio.to_thread(_model_predict)
-    
-    async def _explain(self, X: np.ndarray) -> tuple:
-        """Generate SHAP explanations using the pre-created explainer.
+            if model is None:
+                raise RuntimeError(f"{label.capitalize()} model not loaded")
+            dmatrix = xgb.DMatrix(X, feature_names=feature_names)
+            predictions = model.predict(dmatrix)
+            pd_value = float(
+                1.0 / (1.0 + np.exp(-np.clip(predictions[0], -30.0, 30.0)))
+            )
+            logger.info("%s prediction: PD=%.6f", label.capitalize(), pd_value)
+            return pd_value
 
-        Uses the ``TreeExplainer`` pre-created at application startup by
-        ``ModelManager`` to avoid the cold-start cost of building it on
-        every request.
+        return await asyncio.to_thread(_model_predict)
+
+    async def _run_explanation(
+        self,
+        model: xgb.Booster | None,
+        explainer,
+        X: np.ndarray,
+        label: str,
+    ) -> tuple:
+        """Generate SHAP explanations in a thread pool.
 
         Args:
+            model: XGBoost Booster (checked for None).
+            explainer: Pre-built ``TreeExplainer``.
             X: Encoded (and optionally scaled) feature array.
+            label: Human-readable label for log messages.
 
         Returns:
             Tuple of ``(shap_values, base_value)``.
-        """
-        # Capture for use inside the thread
-        explainer = self.explainer
 
+        """
         def _generate_shap():
-            if self.model is not None:
-                try:
-                    active_explainer = explainer
-                    if active_explainer is None:
-                        raise RuntimeError("Explainer not loaded")
-                    shap_values = active_explainer.shap_values(X)
-                    base_value = active_explainer.expected_value
-                    logger.info("SHAP explanations generated. Shape: %s",
-                                shap_values.shape)
-                    logger.info ("Shap values: %s", shap_values.tolist().__str__())
-                    return shap_values, base_value
-                except Exception as e:
-                    logger.error("SHAP calculation error: %s", str(e),
-                                 exc_info=True)
-                    raise RuntimeError("SHAP calculation error")
-            else: 
-                raise RuntimeError("Model not loaded")
-        return await asyncio.to_thread(_generate_shap)
-    
-    def _extract_top_features(self, shap_values: np.ndarray, base_value: float) -> list:
-        """
-        Extract top 5 features by absolute SHAP value.
-        
-        Args:
-            shap_values: SHAP values array with shape (1, n_features)
-            base_value: Base value (expected model output)
-            
-        Returns:
-            List of SHAPExplanation objects sorted by absolute impact
-        """
-        # Get first row (single prediction)
-        shap_row = shap_values[0] if len(shap_values.shape) > 1 else shap_values
-        
-        # Create list of (feature_name, shap_value) tuples
-        feature_impacts = []
-        for i, feature_name in enumerate(self.feature_names):
-            if i < len(shap_row):
-                shap_val = float(shap_row[i])
-                feature_impacts.append((feature_name, shap_val))
-        
-        # Sort by absolute value, descending
-        feature_impacts.sort(key=lambda x: abs(x[1]), reverse=True)
-        
-        # Extract top 5 and create SHAPExplanation objects
-        explanations = []
-        for feature_name, shap_val in feature_impacts[:5]:
-            direction = "increase" if shap_val > 0 else "decrease"
-            explanations.append(
-                SHAPExplanation(
-                    feature=feature_name,
-                    impact=float(shap_val),
-                    direction=direction,
+            if model is None:
+                raise RuntimeError(f"{label.capitalize()} model not loaded")
+            if explainer is None:
+                raise RuntimeError(f"{label.capitalize()} explainer not loaded")
+            try:
+                shap_values = explainer.shap_values(X)
+                base_value = explainer.expected_value
+                logger.info(
+                    "%s SHAP explanations generated. Shape: %s",
+                    label.capitalize(),
+                    shap_values.shape,
                 )
-            )
-        
-        return explanations
-    
-    def _extract_top_features_credit_card(self, shap_values: np.ndarray, base_value: float) -> list:
-        """
-        Extract top 5 features by absolute SHAP value for credit card model.
-        
-        Args:
-            shap_values: SHAP values array with shape (1, n_features)
-            base_value: Base value (expected model output)
-            
-        Returns:
-            List of SHAPExplanation objects sorted by absolute impact
-        """
-        # Get first row (single prediction)
-        shap_row = shap_values[0] if len(shap_values.shape) > 1 else shap_values
-        
-        # Create list of (feature_name, shap_value) tuples
-        feature_impacts = []
-        for i, feature_name in enumerate(self.credit_card_feature_names):
-            if i < len(shap_row):
-                shap_val = float(shap_row[i])
-                feature_impacts.append((feature_name, shap_val))
-        
-        # Sort by absolute value, descending
-        feature_impacts.sort(key=lambda x: abs(x[1]), reverse=True)
-        
-        # Extract top 5 and create SHAPExplanation objects
-        explanations = []
-        for feature_name, shap_val in feature_impacts[:5]:
-            direction = "increase" if shap_val > 0 else "decrease"
-            explanations.append(
-                SHAPExplanation(
-                    feature=feature_name,
-                    impact=float(shap_val),
-                    direction=direction,
+                return shap_values, base_value
+            except Exception as e:
+                logger.error(
+                    "%s SHAP calculation error: %s",
+                    label.capitalize(),
+                    str(e),
+                    exc_info=True,
                 )
-            )
-        
-        return explanations
-    
-    def _encode_credit_card_request(self, request: CreditCardApplicationRequest) -> np.ndarray:
-        """Encode credit card request data using the training encoder."""
-        request_df = pd.DataFrame([request.model_dump(mode="json")])
+                raise RuntimeError("SHAP calculation error")
 
-        if self.credit_card_encoder is not None:
-            encoded_df = self.credit_card_encoder.transform(request_df[CREDIT_CARD_FEATURE_ORDER])
-            return encoded_df[CREDIT_CARD_FEATURE_ORDER].values.astype(np.float32)
-
-        # Fallback for scenarios where encoder is not available
-        raise RuntimeError("Credit card encoder not loaded")
-
-    async def _predict_credit_card(self, X: np.ndarray) -> float:
-        """Execute credit card model prediction in a thread pool."""
-        def _model_predict() -> float:
-            if self.credit_card_model is not None:
-                dmatrix = xgb.DMatrix(X, feature_names=self.credit_card_feature_names)
-                predictions = self.credit_card_model.predict(dmatrix)
-                pd_value = float(1.0 / (1.0 + np.exp(-np.clip(predictions[0], -30.0, 30.0))))
-                logger.info("Credit card prediction: PD=%.6f", pd_value)
-                return pd_value
-            else:
-                raise RuntimeError("Credit card model not loaded")
-        return await asyncio.to_thread(_model_predict)
-    
-    async def _explain_credit_card(self, X: np.ndarray) -> tuple:
-        """Generate SHAP explanations for credit card model."""
-        explainer = self.credit_card_explainer
-
-        def _generate_shap():
-            if self.credit_card_model is not None:
-                try:
-                    active_explainer = explainer
-                    if active_explainer is None:
-                        raise RuntimeError("Credit card explainer not loaded")
-                    shap_values = active_explainer.shap_values(X)
-                    base_value = active_explainer.expected_value
-                    logger.info("Credit card SHAP explanations generated. Shape: %s",
-                                shap_values.shape)
-                    return shap_values, base_value
-                except Exception as e:
-                    logger.error("Credit card SHAP calculation error: %s", str(e),
-                                 exc_info=True)
-                    raise RuntimeError("SHAP calculation error")
-            else: 
-                raise RuntimeError("Credit card model not loaded")
         return await asyncio.to_thread(_generate_shap)
-    
+
+    @staticmethod
+    def _extract_top_features(
+        shap_values: np.ndarray,
+        base_value: float,
+        feature_names: list[str],
+    ) -> list:
+        """Extract top 5 features by absolute SHAP value.
+
+        Args:
+            shap_values: SHAP values array with shape ``(1, n_features)``.
+            base_value: Base value (expected model output).
+            feature_names: Ordered feature names matching the SHAP columns.
+
+        Returns:
+            List of ``SHAPExplanation`` objects sorted by absolute impact.
+
+        """
+        shap_row = shap_values[0] if len(shap_values.shape) > 1 else shap_values
+
+        feature_impacts = [
+            (feature_names[i], float(shap_row[i]))
+            for i in range(min(len(feature_names), len(shap_row)))
+        ]
+
+        feature_impacts.sort(key=lambda x: abs(x[1]), reverse=True)
+
+        return [
+            SHAPExplanation(
+                feature=name,
+                impact=float(val),
+                direction="increase" if val > 0 else "decrease",
+            )
+            for name, val in feature_impacts[:5]
+        ]
+
     def _get_risk_segment(self, pd_value: float) -> str:
         """Classify probability of default into risk segment.
 
@@ -338,6 +338,7 @@ class InferenceService:
 
         Returns:
             Risk segment: ``"Low"``, ``"Medium"``, or ``"High"``.
+
         """
         if pd_value < self.threshold_low:
             return "Low"
@@ -346,8 +347,7 @@ class InferenceService:
         else:
             return "High"
 
-# This method gets the inference service who calls the model to make predictions
-# It's used as a dependency in the risk router controller method.
+
 async def get_inference_service(request: Request) -> InferenceService:
     """FastAPI dependency that provides an ``InferenceService``.
 
@@ -362,6 +362,7 @@ async def get_inference_service(request: Request) -> InferenceService:
 
     Raises:
         RuntimeError: If the ``ModelManager`` was not initialised.
+
     """
     app = request.app
     model_manager = getattr(app.state, "model_manager", None)
@@ -370,4 +371,3 @@ async def get_inference_service(request: Request) -> InferenceService:
         raise RuntimeError("Model manager not initialized")
 
     return InferenceService(model_manager)
-
