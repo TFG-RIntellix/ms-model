@@ -104,6 +104,8 @@ NUMERIC_FEATURES: List[str] = [
 
 CREDIT_CARD_FEATURE_ORDER: List[str] = [
     "age",
+    "gender",
+    "maritalStatus",
     "employmentStatus",
     "employmentSeniorityYears",
     "annualIncome",
@@ -120,6 +122,8 @@ CREDIT_CARD_FEATURE_ORDER: List[str] = [
 
 # Credit card categorical features and their allowed values
 CREDIT_CARD_CATEGORICAL_FEATURES: Dict[str, List[str]] = {
+    "gender": ["Mujer", "Hombre", "Otro"],
+    "maritalStatus": ["Soltero", "Casado", "Divorciado", "Viudo"],
     "employmentStatus": [
         "Indefinido",
         "Temporal",

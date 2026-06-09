@@ -99,6 +99,8 @@ class CreditCardApplicationRequest(BaseModel):
     """
 
     age: int = Field(..., ge=18, le=80, description="Age (18-80)")
+    gender: GenderEnum = Field(..., description="Gender")
+    maritalStatus: MaritalStatusEnum = Field(..., description="Marital status")
     employmentStatus: CreditCardEmploymentStatusEnum = Field(
         ..., description="Employment status"
     )
@@ -135,6 +137,8 @@ class CreditCardApplicationRequest(BaseModel):
             "examples": [
                 {
                     "age": 41,
+                    "gender": "Hombre",
+                    "maritalStatus": "Soltero",
                     "employmentStatus": "Indefinido",
                     "employmentSeniorityYears": 12,
                     "annualIncome": 56079.61,
