@@ -180,35 +180,44 @@ class CategoricalEncoder:
             KeyError: If a required field is absent from ``request_data``
                 or its value is not in the corresponding mapping dict.
         """
-        encoded: Dict[str, Any] = {
-            "age": request_data.get("age"),
-            "gender": CategoricalEncoder.GENDER_MAP[request_data.get("gender")],
-            "maritalStatus": CategoricalEncoder.MARITAL_STATUS_MAP[request_data.get("maritalStatus")],
-            "education": CategoricalEncoder.EDUCATION_MAP[request_data.get("education")],
-            "employmentStatus": CategoricalEncoder.EMPLOYMENT_STATUS_MAP[
-                request_data.get("employmentStatus")
-            ],
-            "occupationSector": CategoricalEncoder.OCCUPATION_SECTOR_MAP[
-                request_data.get("occupationSector")
-            ],
-            "dependents": request_data.get("dependents"),
-            "homeOwnership": CategoricalEncoder.HOME_OWNERSHIP_MAP[request_data.get("homeOwnership")],
-            "hasMortgage": CategoricalEncoder.HAS_MORTGAGE_MAP[
-                request_data.get("hasMortgage")
-            ],
-            "annualIncome": request_data.get("annualIncome"),
-            "loanType": CategoricalEncoder.LOAN_TYPE_MAP[
-                request_data.get("loanType")
-            ],
-            "purpose": CategoricalEncoder.LOAN_PURPOSE_MAP[request_data.get("purpose")],
-            "loanAmount": request_data.get("loanAmount"),
-            "termMonths": request_data.get("termMonths"),
-            "interestRate": request_data.get("interestRate"),
-            "ltv": request_data.get("ltv"),
-            "dti": request_data.get("dti"),
-            "previousLoansCount": request_data.get("previousLoansCount"),
-            "previousDefaultsCount": request_data.get("previousDefaultsCount"),
-        }
+        try:
+            encoded: Dict[str, Any] = {
+                "age": request_data["age"],
+                "gender": CategoricalEncoder.GENDER_MAP[request_data["gender"]],
+                "maritalStatus": CategoricalEncoder.MARITAL_STATUS_MAP[
+                    request_data["maritalStatus"]
+                ],
+                "education": CategoricalEncoder.EDUCATION_MAP[request_data["education"]],
+                "employmentStatus": CategoricalEncoder.EMPLOYMENT_STATUS_MAP[
+                    request_data["employmentStatus"]
+                ],
+                "occupationSector": CategoricalEncoder.OCCUPATION_SECTOR_MAP[
+                    request_data["occupationSector"]
+                ],
+                "dependents": request_data["dependents"],
+                "homeOwnership": CategoricalEncoder.HOME_OWNERSHIP_MAP[
+                    request_data["homeOwnership"]
+                ],
+                "hasMortgage": CategoricalEncoder.HAS_MORTGAGE_MAP[
+                    request_data["hasMortgage"]
+                ],
+                "annualIncome": request_data["annualIncome"],
+                "loanType": CategoricalEncoder.LOAN_TYPE_MAP[
+                    request_data["loanType"]
+                ],
+                "purpose": CategoricalEncoder.LOAN_PURPOSE_MAP[request_data["purpose"]],
+                "loanAmount": request_data["loanAmount"],
+                "termMonths": request_data["termMonths"],
+                "interestRate": request_data["interestRate"],
+                "ltv": request_data["ltv"],
+                "dti": request_data["dti"],
+                "previousLoansCount": request_data["previousLoansCount"],
+                "previousDefaultsCount": request_data["previousDefaultsCount"],
+            }
+        except KeyError as exc:
+            raise KeyError(
+                f"Missing or unmapped field in loan request: {exc}"
+            ) from exc
 
         feature_vector = [encoded[feature] for feature in FEATURE_ORDER]
         return np.array([feature_vector], dtype=np.float32)
@@ -233,29 +242,34 @@ class CategoricalEncoder:
             KeyError: If a required field is absent from ``request_data``
                 or its value is not in the corresponding mapping dict.
         """
-        encoded: Dict[str, Any] = {
-            "age": request_data.get("age"),
-            "employmentStatus": CategoricalEncoder.CREDIT_CARD_EMPLOYMENT_STATUS_MAP[
-                request_data.get("employmentStatus")
-            ],
-            "workSeniority": request_data.get("workSeniority"),
-            "annualIncome": request_data.get("annualIncome"),
-            "incomeType": CategoricalEncoder.CREDIT_CARD_INCOME_TYPE_MAP[
-                request_data.get("incomeType")
-            ],
-            "homeOwnership": CategoricalEncoder.CREDIT_CARD_HOME_OWNERSHIP_MAP[
-                request_data.get("homeOwnership")
-            ],
-            "dependents": request_data.get("dependents"),
-            "creditLimit": request_data.get("creditLimit"),
-            "isRevolving": CategoricalEncoder.CREDIT_CARD_IS_REVOLVING_MAP[
-                request_data.get("isRevolving")
-            ],
-            "interestRate": request_data.get("interestRate"),
-            "creditLimitToIncomeRatio": request_data.get("creditLimitToIncomeRatio"),
-            "dti": request_data.get("dti"),
-            "previousDefaults": request_data.get("previousDefaults"),
-        }
+        try:
+            encoded: Dict[str, Any] = {
+                "age": request_data["age"],
+                "employmentStatus": CategoricalEncoder.CREDIT_CARD_EMPLOYMENT_STATUS_MAP[
+                    request_data["employmentStatus"]
+                ],
+                "workSeniority": request_data["workSeniority"],
+                "annualIncome": request_data["annualIncome"],
+                "incomeType": CategoricalEncoder.CREDIT_CARD_INCOME_TYPE_MAP[
+                    request_data["incomeType"]
+                ],
+                "homeOwnership": CategoricalEncoder.CREDIT_CARD_HOME_OWNERSHIP_MAP[
+                    request_data["homeOwnership"]
+                ],
+                "dependents": request_data["dependents"],
+                "creditLimit": request_data["creditLimit"],
+                "isRevolving": CategoricalEncoder.CREDIT_CARD_IS_REVOLVING_MAP[
+                    request_data["isRevolving"]
+                ],
+                "interestRate": request_data["interestRate"],
+                "creditLimitToIncomeRatio": request_data["creditLimitToIncomeRatio"],
+                "dti": request_data["dti"],
+                "previousDefaults": request_data["previousDefaults"],
+            }
+        except KeyError as exc:
+            raise KeyError(
+                f"Missing or unmapped field in credit card request: {exc}"
+            ) from exc
 
         feature_vector = [encoded[feature] for feature in CREDIT_CARD_FEATURE_ORDER]
         return np.array([feature_vector], dtype=np.float32)

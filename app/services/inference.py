@@ -17,6 +17,7 @@ import asyncio
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from fastapi import HTTPException, Request, status
 
 from app.core.features import FEATURE_ORDER, CREDIT_CARD_FEATURE_ORDER
 from app.schemas.models import (
@@ -24,8 +25,6 @@ from app.schemas.models import (
 )
 from app.services.encoder import CategoricalEncoder
 from app.core.settings import get_settings
-
-from fastapi import Request
 
 logger = logging.getLogger(__name__)
 
@@ -77,16 +76,23 @@ class InferenceService:
         Raises:
             RuntimeError: If the model is not loaded and cannot predict.
         """
-        # Encode using the persisted training encoder when available so the
-        # categorical codes match the training artefact exactly.
-        X = self._encode_request(request)
+        try:
+            X = self._encode_request(request)
+        except (KeyError, ValueError) as exc:
+            logger.error("Loan encoding failed: %s", exc, exc_info=True)
+            raise ValueError(
+                f"Failed to encode loan application: {exc}"
+            ) from exc
 
-        # It scales the numerical fields of the request to be in the same range as the treated training data in the model. 
-        # This is done to improve the model's performance.
-        if self.scaler is not None:
-            X = self.scaler.transform(X).astype(np.float32)
+        try:
+            if self.scaler is not None:
+                X = self.scaler.transform(X).astype(np.float32)
+        except Exception as exc:
+            logger.error("Loan feature scaling failed: %s", exc, exc_info=True)
+            raise RuntimeError(
+                f"Failed to scale loan features: {exc}"
+            ) from exc
 
-        ## Call to private methods who make the prediction and SHAP explanations.
         pd_value = await self._predict(X)
         shap_values, base_value = await self._explain(X)
 
@@ -112,14 +118,23 @@ class InferenceService:
         Raises:
             RuntimeError: If the credit card model is not loaded and cannot predict.
         """
-        # Encode using the persisted training encoder
-        X = self._encode_credit_card_request(request)
+        try:
+            X = self._encode_credit_card_request(request)
+        except (KeyError, ValueError, RuntimeError) as exc:
+            logger.error("Credit card encoding failed: %s", exc, exc_info=True)
+            raise ValueError(
+                f"Failed to encode credit card application: {exc}"
+            ) from exc
 
-        # Scale numerical fields
-        if self.credit_card_scaler is not None:
-            X = self.credit_card_scaler.transform(X).astype(np.float32)
+        try:
+            if self.credit_card_scaler is not None:
+                X = self.credit_card_scaler.transform(X).astype(np.float32)
+        except Exception as exc:
+            logger.error("Credit card feature scaling failed: %s", exc, exc_info=True)
+            raise RuntimeError(
+                f"Failed to scale credit card features: {exc}"
+            ) from exc
 
-        # Make prediction and generate explanations
         pd_value = await self._predict_credit_card(X)
         shap_values, base_value = await self._explain_credit_card(X)
 
@@ -199,11 +214,11 @@ class InferenceService:
                 except Exception as e:
                     logger.error("SHAP calculation error: %s", str(e),
                                  exc_info=True)
-                    raise RuntimeError("SHAP calculation error")
-            else: 
+                    raise RuntimeError("SHAP calculation error") from e
+            else:
                 raise RuntimeError("Model not loaded")
         return await asyncio.to_thread(_generate_shap)
-    
+
     def _extract_top_features(self, shap_values: np.ndarray, base_value: float) -> list:
         """
         Extract top 5 features by absolute SHAP value.
@@ -322,8 +337,8 @@ class InferenceService:
                 except Exception as e:
                     logger.error("Credit card SHAP calculation error: %s", str(e),
                                  exc_info=True)
-                    raise RuntimeError("SHAP calculation error")
-            else: 
+                    raise RuntimeError("SHAP calculation error") from e
+            else:
                 raise RuntimeError("Credit card model not loaded")
         return await asyncio.to_thread(_generate_shap)
     
@@ -367,7 +382,10 @@ async def get_inference_service(request: Request) -> InferenceService:
     model_manager = getattr(app.state, "model_manager", None)
 
     if model_manager is None:
-        raise RuntimeError("Model manager not initialized")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model manager not initialised. The service is starting up or failed to load.",
+        )
 
     return InferenceService(model_manager)
 

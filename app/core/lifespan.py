@@ -82,13 +82,21 @@ class ModelManager:
             # --- Encoder ---
             encoder_path = Path(settings.ENCODER_PATH)
             if encoder_path.exists():
-                with open(encoder_path, "rb") as f:
-                    self.encoder = pickle.load(f)
-                self.encoder_loaded = True
-                logger.info("✓ Loaded encoder from %s", encoder_path)
-                if hasattr(self.encoder, "encoders"):
-                    logger.info("  Encoder has %d categorical features",
-                                len(self.encoder.encoders))
+                try:
+                    with open(encoder_path, "rb") as f:
+                        self.encoder = pickle.load(f)
+                    self.encoder_loaded = True
+                    logger.info("✓ Loaded encoder from %s", encoder_path)
+                    if hasattr(self.encoder, "encoders"):
+                        logger.info("  Encoder has %d categorical features",
+                                    len(self.encoder.encoders))
+                except Exception as enc_err:
+                    logger.error(
+                        "✗ Failed to load encoder from %s: %s",
+                        encoder_path, enc_err, exc_info=True,
+                    )
+                    self.encoder = None
+                    self.encoder_loaded = False
             else:
                 logger.info("  Using built-in categorical encoding (no pickle encoder)")
                 self.encoder_loaded = False
@@ -96,10 +104,18 @@ class ModelManager:
             # --- Scaler ---
             scaler_path = Path(settings.SCALER_PATH)
             if scaler_path.exists():
-                with open(scaler_path, "rb") as f:
-                    self.scaler = pickle.load(f)
-                self.scaler_loaded = True
-                logger.info("✓ Loaded scaler from %s", scaler_path)
+                try:
+                    with open(scaler_path, "rb") as f:
+                        self.scaler = pickle.load(f)
+                    self.scaler_loaded = True
+                    logger.info("✓ Loaded scaler from %s", scaler_path)
+                except Exception as scaler_err:
+                    logger.error(
+                        "✗ Failed to load scaler from %s: %s",
+                        scaler_path, scaler_err, exc_info=True,
+                    )
+                    self.scaler = None
+                    self.scaler_loaded = False
             else:
                 logger.info("  No scaler found — numeric features will not be scaled")
                 self.scaler_loaded = False
@@ -140,13 +156,21 @@ class ModelManager:
             # --- Credit Card Encoder ---
             cc_encoder_path = Path(settings.CREDIT_CARD_ENCODER_PATH)
             if cc_encoder_path.exists():
-                with open(cc_encoder_path, "rb") as f:
-                    self.credit_card_encoder = pickle.load(f)
-                self.credit_card_encoder_loaded = True
-                logger.info("✓ Loaded credit card encoder from %s", cc_encoder_path)
-                if hasattr(self.credit_card_encoder, "encoders"):
-                    logger.info("  Encoder has %d categorical features",
-                                len(self.credit_card_encoder.encoders))
+                try:
+                    with open(cc_encoder_path, "rb") as f:
+                        self.credit_card_encoder = pickle.load(f)
+                    self.credit_card_encoder_loaded = True
+                    logger.info("✓ Loaded credit card encoder from %s", cc_encoder_path)
+                    if hasattr(self.credit_card_encoder, "encoders"):
+                        logger.info("  Encoder has %d categorical features",
+                                    len(self.credit_card_encoder.encoders))
+                except Exception as cc_enc_err:
+                    logger.error(
+                        "✗ Failed to load credit card encoder from %s: %s",
+                        cc_encoder_path, cc_enc_err, exc_info=True,
+                    )
+                    self.credit_card_encoder = None
+                    self.credit_card_encoder_loaded = False
             else:
                 logger.info("  Credit card encoder not found")
                 self.credit_card_encoder_loaded = False
@@ -154,10 +178,18 @@ class ModelManager:
             # --- Credit Card Scaler ---
             cc_scaler_path = Path(settings.CREDIT_CARD_SCALER_PATH)
             if cc_scaler_path.exists():
-                with open(cc_scaler_path, "rb") as f:
-                    self.credit_card_scaler = pickle.load(f)
-                self.credit_card_scaler_loaded = True
-                logger.info("✓ Loaded credit card scaler from %s", cc_scaler_path)
+                try:
+                    with open(cc_scaler_path, "rb") as f:
+                        self.credit_card_scaler = pickle.load(f)
+                    self.credit_card_scaler_loaded = True
+                    logger.info("✓ Loaded credit card scaler from %s", cc_scaler_path)
+                except Exception as cc_scaler_err:
+                    logger.error(
+                        "✗ Failed to load credit card scaler from %s: %s",
+                        cc_scaler_path, cc_scaler_err, exc_info=True,
+                    )
+                    self.credit_card_scaler = None
+                    self.credit_card_scaler_loaded = False
             else:
                 logger.info("  No credit card scaler found")
                 self.credit_card_scaler_loaded = False

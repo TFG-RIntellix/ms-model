@@ -36,6 +36,68 @@ async def validation_exception_handler(
     )
 
 
+async def value_error_handler(
+    request: Request, exc: ValueError
+) -> JSONResponse:
+    """Handle encoding and data-processing errors.
+
+    ``ValueError`` is raised when request data cannot be encoded or
+    transformed by the inference pipeline (e.g. unknown categorical
+    value, missing field).
+
+    Args:
+        request: Incoming request that triggered the error.
+        exc: The ``ValueError`` raised during encoding/scaling.
+
+    Returns:
+        ``400 Bad Request`` with the error details and request ID.
+    """
+    request_id = getattr(request.state, "request_id", None)
+    logger.warning(
+        "Value error (request_id=%s): %s",
+        request_id, str(exc),
+    )
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "detail": str(exc),
+            "error_type": "ValueError",
+            "request_id": request_id,
+        },
+    )
+
+
+async def runtime_error_handler(
+    request: Request, exc: RuntimeError
+) -> JSONResponse:
+    """Handle model/service-layer runtime errors.
+
+    ``RuntimeError`` is raised when the ML model, encoder, or
+    explainer is unavailable or fails during inference.
+
+    Args:
+        request: Incoming request that triggered the error.
+        exc: The ``RuntimeError`` raised by the inference layer.
+
+    Returns:
+        ``503 Service Unavailable`` with the error details and request ID.
+    """
+    request_id = getattr(request.state, "request_id", None)
+    logger.error(
+        "Runtime error (request_id=%s): %s",
+        request_id, str(exc),
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "detail": str(exc),
+            "error_type": "RuntimeError",
+            "request_id": request_id,
+        },
+    )
+
+
 async def general_exception_handler(
     request: Request, exc: Exception
 ) -> JSONResponse:
@@ -71,4 +133,6 @@ def register_exception_handlers(app: FastAPI):
     """Register all exception handlers with the FastAPI app."""
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(ValidationError, validation_exception_handler)
+    app.add_exception_handler(ValueError, value_error_handler)
+    app.add_exception_handler(RuntimeError, runtime_error_handler)
     app.add_exception_handler(Exception, general_exception_handler)
