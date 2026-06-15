@@ -21,13 +21,7 @@ dependencies = [
     "shap>=0.46.0",
     "numpy>=2.0",
     "pandas>=2.2.0",
-    "scikit-learn>=1.4.0",
-    "python-multipart==0.0.6",
-    "torch>=2.0.0",
-    "transformers>=4.30.0",
-    "accelerate>=0.20.0",
-    "sentencepiece",
-    "protobuf"
+    "scikit-learn>=1.4.0"
 ]
 
 [project.optional-dependencies]
