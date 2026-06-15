@@ -1,54 +1,59 @@
+# =========================
 # Stage 1: Builder
-FROM python:3.11-slim as builder
+# =========================
+FROM python:3.12.3-slim-bookworm AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /build
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    make \
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+    g++ gcc make
+
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files and install dependencies into a portable prefix
 COPY pyproject.toml ./
 COPY app/ ./app/
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --prefix=/install .
 
+# Instala dependencias y paquete usando pyproject.toml
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    python -m pip install --no-cache-dir --prefix=/install .
 
+# =========================
 # Stage 2: Runtime
-FROM python:3.11-slim
+# =========================
+FROM python:3.12.3-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install runtime tooling used by healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+    libgomp1 \
+    libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
 RUN useradd -m -u 1000 appuser
 
-# Copy installed packages and console scripts into runtime
+# Dependencias instaladas desde pyproject.toml
 COPY --from=builder /install /usr/local
 
-# Defensive install and verification to guarantee runtime imports and entrypoints
-RUN pip install --no-cache-dir packaging "uvicorn[standard]==0.24.0" && \
-    python -c "import packaging, uvicorn; print('packaging and uvicorn available')"
-
-# Copy application code
+# Copiamos el código fuente completo, incluidos ml_artifacts
 COPY --chown=appuser:appuser app/ ./app/
 
-# Switch to non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)" || exit 1
+HEALTHCHECK --interval=30s \
+	--timeout=10s \
+	--start-period=5s \
+	--retries=3 \
+	CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)" \
+	|| exit 1
 
-# Expose port
 EXPOSE 8000
 
-# Run application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

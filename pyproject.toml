@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Credit Risk Engine microservice — XGBoost + SHAP"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Lucia Fernandez Mancebo" }]
 
 dependencies = [
@@ -16,12 +16,12 @@ dependencies = [
     "uvicorn[standard]==0.24.0",
     "pydantic==2.5.0",
     "pydantic-settings==2.1.0",
-    "packaging>=20.0",
+    "packaging==24.2",
     "xgboost==2.0.3",
-    "shap>=0.46.0",
-    "numpy>=2.0",
-    "pandas>=2.2.0",
-    "scikit-learn>=1.4.0"
+    "shap==0.46.0",
+    "numpy==1.26.4",
+    "pandas==2.2.2",
+    "scikit-learn==1.4.2"
 ]
 
 [project.optional-dependencies]
@@ -30,9 +30,14 @@ dev = [
     "pytest-asyncio==0.21.1",
     "httpx==0.25.0",
     "jupyter==1.0.0",
-    "matplotlib>=3.9.0",
-    "seaborn>=0.14.0",
+    "matplotlib==3.9.2",
+    "seaborn==0.13.2",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["training*", "resources*", "tests*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -44,7 +49,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "D", "UP"]
-ignore = ["D203", "D213"]  # prefer one-blank-line-before-class, multi-line-summary-first-line
+ignore = ["D203", "D213"]
 
 [tool.mypy]
 python_version = "3.11"
