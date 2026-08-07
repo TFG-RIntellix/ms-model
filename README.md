@@ -1,263 +1,119 @@
-# Credit Risk Engine Microservice
+# ms-model
 
-A production-grade Python microservice using **FastAPI** for credit risk assessment. Demonstrates senior-level best practices including clean architecture, dependency injection, and explainable AI (SHAP).
+**Machine-learning scoring microservice for the RIntellix credit-risk platform.**
 
-## Project Overview
+`Python 3.11+` · `FastAPI` · `XGBoost` · `SHAP` · `Layered Architecture`
 
-This microservice provides:
-- **Loan Risk Prediction**: Probability of Default (PD) estimation for loan applications
-- **Explainability**: SHAP-based feature importance (Top 5 most impactful factors)
-- **Multi-Model Support**: Extensible architecture for credit card and other product types
-- **Production Ready**: Async operations, global error handling, comprehensive testing
+---
 
-## Architecture
+## 1. Overview
 
-```
-/app
-├── api/                # FastAPI routers
-├── core/               # Configuration, lifespan, logging
-├── schemas/            # Pydantic v2 validation models
-├── services/           # Business logic & ML inference
-├── ml_artifacts/       # XGBoost models, encoders
-└── main.py            # Application entry point
-/tests                 # Pytest unit & integration tests
-Dockerfile             # Multi-stage Python 3.11+ build
-```
+`ms-model` is the machine-learning core of RIntellix. Given the structured attributes of a loan
+or credit-card application, it returns a **probability of default (PD)** prediction together
+with an **explainability breakdown** (the top contributing risk factors, via SHAP), so a risk
+analyst can understand *why* the model produced a given score — not just the score itself.
 
-## Quick Start
+It is a stateless prediction service: it does not persist data or call other RIntellix services;
+it is called synchronously by `ms-risk-engine` for each simulation.
 
-### Prerequisites
-- Python 3.11+
-- pip or conda
+## 2. Key aspects of the system
 
-### Installation
+- **Clean, layered architecture.** `api/` (FastAPI routers), `core/` (settings, app lifespan,
+  logging), `schemas/` (Pydantic v2 request/response validation), `services/` (business logic
+  and ML inference), `ml_artifacts/` (the trained XGBoost model and its encoders).
+- **Explainable AI by design.** Every prediction is accompanied by a SHAP-based ranking of the
+  top 5 most influential features, computed by `InferenceService` — this is the data source for
+  the "risk drivers" section shown in the frontend and in the generated PDF report.
+- **Multi-product support.** The service supports more than one credit product (personal loans
+  and credit cards) through separate, explicitly-typed request schemas rather than a single
+  generic payload, keeping validation strict per product.
+- **Async, production-oriented FastAPI setup.** Async endpoint handlers, a documented health
+  check (`/health`, used by the Docker `HEALTHCHECK`), and global error handling.
+- **Reproducible dependency pinning.** All runtime dependencies are pinned to exact versions in
+  `pyproject.toml` to keep model inference numerically reproducible across environments.
+
+### Main REST endpoints
+
+All endpoints are served under the configured API v1 prefix (`{API_V1_PREFIX}/risk`):
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/risk/model-info` | Metadata about the loaded ML model and service configuration |
+| `POST` | `/risk/predict-loan` | PD prediction + SHAP explanation for a loan application |
+| `POST` | `/risk/predict-credit-card` | PD prediction + SHAP explanation for a credit-card application |
+
+Interactive OpenAPI/Swagger documentation is available at `/docs` once the service is running.
+
+### Repository structure
+
+The following schematic illustrates the source code layout and how the key architectural pieces described above map to the main project folders:
+
+![Directory structure](./estructura_directorios_ms_model.svg)
+
+## 3. Tech stack
+
+- **Language / runtime:** Python 3.11+
+- **Framework:** FastAPI + Uvicorn (ASGI)
+- **Validation:** Pydantic v2 / `pydantic-settings`
+- **ML:** XGBoost (model), SHAP (explainability), scikit-learn, NumPy, pandas
+- **Testing / tooling:** pytest, pytest-asyncio, httpx, ruff, mypy
+
+## 4. Prerequisites
+
+- Python 3.11 or higher
+- `pip` (or `conda`)
+
+## 5. Getting started
+
+> `**IMPORTANT**`
+
+> **Global platform deployment**
+> This repository contains only the ML engine code. To spin up the entire RIntellix platform (including this engine, databases, and the rest of the microservices), clone the main infrastructure repository **[TFG-RIntellix/rintellix-deployment]** and follow its instructions.
+
+The following commands are provided for local development, code review, and testing:
 
 ```bash
-# Clone / navigate to the project directory
+# 1. Clone the repository
+git clone https://github.com/TFG-RIntellix/ms-model.git
 cd ms-model
 
-# Create virtual environment
+# 2. Create and activate a virtual environment
 python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
 
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+# 3. Install the project (runtime deps) — add "[dev]" for tests/notebooks
+pip install -e ".[dev]"
 ```
 
-### Running the Service
+The trained model artifacts already ship inside `app/ml_artifacts/`, so no separate training step is required.
 
-```bash
-# Start the development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+## 6. Configuration
 
-# API will be available at: http://localhost:8000
-# Interactive docs: http://localhost:8000/docs (Swagger UI)
-```
+Runtime configuration is managed through `pydantic-settings` in `app/core/`. Override any setting via environment variables as needed for your environment (e.g. `.env` file or container environment variables).
 
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run specific test file
-pytest tests/test_endpoints.py
-```
-
-## API Endpoints
-
-### Loan Risk Prediction
-
-**Endpoint**: `POST /api/v1/risk/predict-loan`
-
-**Request Example**:
-```bash
-curl -X POST "http://localhost:8000/api/v1/risk/predict-loan" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "edad": 35,
-    "genero": "Mujer",
-    "estado_civil": "Casado",
-    "educacion": "Grado",
-    "situacion_laboral": "Indefinido",
-    "sector_trabajo": "Tecnologia",
-    "dependientes": 2,
-    "vivienda": "Propia_Hipoteca",
-    "tiene_hipoteca": "Si",
-    "ingresos_anuales": 45000.0,
-    "tipo_prestamo": "Personal",
-    "proposito": "Consolidacion_Deuda",
-    "monto_prestamo": 15000.0,
-    "plazo_meses": 36,
-    "tasa_interes": 5.5,
-    "ltv": 0.45,
-    "dti": 0.35,
-    "num_prestamos_previos": 1,
-    "num_moras_previas": 0
-  }'
-```
-
-**Response Example**:
-```json
-{
-  "probability_of_default": 0.185,
-  "risk_segment": "Medium",
-  "shap_explanations": [
-    {
-      "feature": "Num_Moras_Previas",
-      "impact": 0.12,
-      "direction": "increase"
-    },
-    {
-      "feature": "Ingresos_Anuales",
-      "impact": -0.08,
-      "direction": "decrease"
-    },
-    {
-      "feature": "DTI",
-      "impact": 0.06,
-      "direction": "increase"
-    },
-    {
-      "feature": "Tipo_Prestamo",
-      "impact": -0.04,
-      "direction": "decrease"
-    },
-    {
-      "feature": "Tasa_Interes",
-      "impact": 0.03,
-      "direction": "increase"
-    }
-  ]
-}
-```
-
-### Model Information
-
-**Endpoint**: `GET /api/v1/risk/model-info`
-
-**Response Example**:
-```json
-{
-  "app_version": "1.1.0",
-  "model_loaded": true,
-  "boosting_rounds": 200,
-  "feature_names": [
-    "Edad", "Genero", "Estado_Civil", "Educacion",
-    "Situacion_Laboral", "Sector_Trabajo", "Dependientes",
-    "Vivienda", "Tiene_Hipoteca", "Ingresos_Anuales",
-    "Tipo_Prestamo", "Proposito", "Monto_Prestamo",
-    "Plazo_Meses", "Tasa_Interes", "ltv", "dti",
-    "Num_Prestamos_Previos", "Num_Moras_Previas"
-  ],
-  "scaler_loaded": true,
-  "encoder_loaded": true,
-  "model_artifact_date": "2026-04-02T19:30:00+00:00",
-  "risk_thresholds": {
-    "low_below": 0.15,
-    "high_at_or_above": 0.35
-  }
-}
-```
-
-## Model Management
-
-### Loading ML Artifacts
-
-- XGBoost models are loaded **once at startup** via the FastAPI lifespan context manager
-- SHAP TreeExplainer is initialized during app startup
-- Models are stored in `app/ml_artifacts/` (.json and .pkl files)
-
-### Supported Models
-
-1. **Loan Model** (`loans_model.json`) - Default model for loan risk assessment
-2. **Credit Card Model** (placeholder) - To be implemented
-
-## Development Guidelines
-
-### Dependency Injection
-
-The service uses FastAPI's `Depends()` to inject models and services:
-
-```python
-@router.post("/api/v1/risk/predict-loan")
-async def predict_loan(
-    request: LoanApplicationRequest,
-    service: InferenceService = Depends(get_inference_service),
-) -> PredictionResponse:
-    return await service.predict_loan(request)
-```
-
-### Async ML Operations
-
-CPU-bound ML tasks (model.predict, SHAP calculations) are executed in a thread pool:
-
-```python
-result = await asyncio.to_thread(self.model.predict, X)
-```
-
-### Error Handling
-
-- **422 Unprocessable Entity**: Pydantic validation errors
-- **500 Internal Server Error**: ML inference failures
-- Global exception handlers prevent stack trace leakage to clients
-
-## Docker Deployment
-
-```bash
-# Build the image
-docker build -t credit-risk-engine:latest .
-
-# Run the container
-docker run -p 8000:8000 credit-risk-engine:latest
-```
-
-## Configuration
-
-Environment variables (via `app/core/settings.py`):
-
-| Variable | Default | Description |
+| Variable | Description | Default |
 |---|---|---|
-| `APP_NAME` | `Credit Risk Engine` | Service display name |
-| `APP_VERSION` | *(auto from pyproject.toml)* | Semantic version |
-| `DEBUG` | `False` | Enable debug mode |
-| `LOG_LEVEL` | `INFO` | Logging level |
-| `HOST` | `0.0.0.0` | Server bind address |
-| `PORT` | `8000` | Server bind port |
-| `MODEL_PATH` | `app/ml_artifacts/loans_model.json` | XGBoost model path |
-| `ENCODER_PATH` | `app/ml_artifacts/encoder.pkl` | Categorical encoder path |
-| `SCALER_PATH` | `app/ml_artifacts/scaler.pkl` | StandardScaler path |
-| `API_V1_PREFIX` | `/api/v1` | API version prefix |
-| `RISK_THRESHOLD_LOW` | `0.15` | PD below → Low risk |
-| `RISK_THRESHOLD_HIGH` | `0.35` | PD at or above → High risk |
-| `CORS_ORIGINS` | `*` | Allowed CORS origins |
+| `API_V1_PREFIX` | Prefix for API endpoints | `/api/v1` |
+| `MODEL_PATH` | Path to the trained XGBoost model | `app/ml_artifacts/model.xgb` |
+| `LOG_LEVEL` | Logging detail level (INFO, DEBUG, etc.) | `INFO` |
 
-## Performance Notes
+## 7. Testing
 
-- **First request latency**: Higher (model loading only on startup)
-- **Subsequent requests**: <100ms (inference only)
-- **SHAP calculations**: ~50-200ms depending on feature set
+```bash
+pytest
+```
 
-## License
+Unit and integration tests live under `tests/`. Offline model-retraining scripts (not part of
+the running service) live under `training/`.
 
-TFG Project - Universidad
+## 8. Related services
 
-## Author
+- **ms-risk-engine** — the only consumer of this service; calls `/risk/predict-loan` and
+  `/risk/predict-credit-card` synchronously as part of the simulation flow.
 
-Backend Engineer & MLOps Specialist
+## 9. Author
+
+Lucía Fernández Mancebo — TFG *RIntellix*, Universidad de Cantabria.
 
 
-### TODO:
 
-+ ~~Improve how we inject the configuration into this microservice.~~ ✅ (v1.1.0)
-+ ~~Improve the functionality of the API.~~ ✅ (v1.1.0 — model-info endpoint, request-id in errors)
-+ Add credit card risk prediction functionality.
-+ Check if it's possible to define an unique endpoint and by its content we can determine which model to use, credit card or loan one, in case of that then do the proper validation of the input data for each model.
