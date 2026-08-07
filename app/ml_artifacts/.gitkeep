@@ -1,0 +1,2 @@
+# This file ensures the ml_artifacts directory is tracked by git
+# Place your XGBoost model (.json) and encoder (.pkl) files here
