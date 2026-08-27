@@ -15,8 +15,8 @@ from app.schemas.enums import (
     LoanPurposeEnum,
 )
 from app.services.encoder import CategoricalEncoder
-from app.services.inference import InferenceService
-
+from app.services.inference import LoanInferenceService, BaseInferenceService
+from app.core.constants import RiskSegment, SHAPDirection
 
 # ==================== Encoder Tests ====================
 
@@ -65,54 +65,56 @@ class TestCategoricalEncoder:
 
 # ==================== InferenceService Unit Tests ====================
 
-class TestInferenceService:
-    """Tests for ``InferenceService`` business logic."""
+class TestBaseInferenceService:
+    """Tests for ``BaseInferenceService`` business logic."""
 
-    def test_risk_segment_low(self, mock_model_manager):
+    def test_risk_segment_low(self):
         """PD < 0.15 maps to 'Low'."""
-        service = InferenceService(mock_model_manager)
-        assert service._get_risk_segment(0.10) == "Low"
-        assert service._get_risk_segment(0.14999) == "Low"
+        service = BaseInferenceService()
+        assert service._get_risk_segment(0.10) == RiskSegment.LOW.value
+        assert service._get_risk_segment(0.14999) == RiskSegment.LOW.value
 
-    def test_risk_segment_medium(self, mock_model_manager):
+    def test_risk_segment_medium(self):
         """0.15 ≤ PD < 0.35 maps to 'Medium'."""
-        service = InferenceService(mock_model_manager)
-        assert service._get_risk_segment(0.15) == "Medium"
-        assert service._get_risk_segment(0.25) == "Medium"
-        assert service._get_risk_segment(0.34999) == "Medium"
+        service = BaseInferenceService()
+        assert service._get_risk_segment(0.15) == RiskSegment.MEDIUM.value
+        assert service._get_risk_segment(0.25) == RiskSegment.MEDIUM.value
+        assert service._get_risk_segment(0.34999) == RiskSegment.MEDIUM.value
 
-    def test_risk_segment_high(self, mock_model_manager):
+    def test_risk_segment_high(self):
         """PD ≥ 0.35 maps to 'High'."""
-        service = InferenceService(mock_model_manager)
-        assert service._get_risk_segment(0.35) == "High"
-        assert service._get_risk_segment(0.50) == "High"
-        assert service._get_risk_segment(0.95) == "High"
+        service = BaseInferenceService()
+        assert service._get_risk_segment(0.35) == RiskSegment.HIGH.value
+        assert service._get_risk_segment(0.50) == RiskSegment.HIGH.value
+        assert service._get_risk_segment(0.95) == RiskSegment.HIGH.value
 
-    def test_extract_top_features(self, mock_model_manager):
+    def test_extract_top_features(self):
         """Top-5 SHAP features are sorted by descending absolute value."""
-        service = InferenceService(mock_model_manager)
+        service = BaseInferenceService()
         shap_values = np.array([[
             0.12, -0.08, 0.06, -0.04, 0.03,
             0.01, 0.01, 0.01, 0.01, 0.01,
             0.01, 0.01, 0.01, 0.01, 0.01,
             0.01, 0.01, 0.01, 0.01,
         ]])
-        explanations = service._extract_top_features(shap_values, base_value=0.2)
+        feature_names = CategoricalEncoder.get_feature_names()
+        explanations = service._extract_top_features(shap_values, feature_names=feature_names)
 
         assert len(explanations) == 5
         assert explanations[0].feature == "age"
         assert explanations[0].impact == pytest.approx(0.12)
-        assert explanations[0].direction == "increase"
+        assert explanations[0].direction == SHAPDirection.INCREASE.value
 
         assert explanations[1].feature == "gender"
         assert explanations[1].impact == pytest.approx(-0.08)
-        assert explanations[1].direction == "decrease"
+        assert explanations[1].direction == SHAPDirection.DECREASE.value
 
-    def test_extract_top_features_sorted(self, mock_model_manager):
+    def test_extract_top_features_sorted(self):
         """Returned explanations are sorted by impact descending."""
-        service = InferenceService(mock_model_manager)
+        service = BaseInferenceService()
         shap_values = np.array([[0.01, 0.10, -0.05] + [0.0] * 16])
-        explanations = service._extract_top_features(shap_values, base_value=0.2)
+        feature_names = CategoricalEncoder.get_feature_names()
+        explanations = service._extract_top_features(shap_values, feature_names=feature_names)
         magnitudes = [abs(e.impact) for e in explanations]
         assert magnitudes == sorted(magnitudes, reverse=True)
 
@@ -121,16 +123,54 @@ class TestInferenceService:
 
 @pytest.mark.asyncio
 async def test_predict_loan_full_flow(mock_model_manager, sample_loan_request):
-    """InferenceService initialises correctly with a mock model manager."""
+    """LoanInferenceService initialises correctly with a mock model manager."""
     mock_model_manager.loan_model.predict.return_value = np.array([0.25])
     mock_model_manager.explainer = Mock()
     mock_model_manager.explainer.shap_values.return_value = np.zeros((1, 19))
     mock_model_manager.explainer.expected_value = 0.0
 
-    service = InferenceService(mock_model_manager)
-    response = await service.predict_loan(sample_loan_request)
+    service = LoanInferenceService(mock_model_manager)
+    response = await service.predict(sample_loan_request)
 
     assert service.feature_names is not None
     assert len(service.feature_names) == 19
     assert response.probability_of_default == pytest.approx(0.25, rel=1e-4)
-    assert response.risk_segment == "Medium"
+    assert response.risk_segment == RiskSegment.MEDIUM.value
+
+
+@pytest.mark.asyncio
+async def test_predict_credit_card_full_flow(mock_model_manager):
+    """CreditCardInferenceService initialises correctly with a mock model manager."""
+    from app.schemas.models import CreditCardApplicationRequest
+    from app.services.inference import CreditCardInferenceService
+
+    # Provide a simple mock request for credit card
+    sample_cc_request = CreditCardApplicationRequest(
+        edad=35,
+        estado_laboral="Empleado",
+        antiguedad_laboral=5,
+        ingresos_anuales=50000.0,
+        tipo_ingreso="Salario",
+        propiedad_vivienda="Propia",
+        dependientes=1,
+        limite_credito=10000.0,
+        es_revolving="No",
+        tasa_interes=0.15,
+        ratio_limite_ingreso=0.2,
+        dti=0.3,
+        impagos_previos=0
+    )
+
+    mock_model_manager.credit_card_model = Mock()
+    mock_model_manager.credit_card_model.predict.return_value = np.array([0.4])
+    mock_model_manager.credit_card_explainer = Mock()
+    mock_model_manager.credit_card_explainer.shap_values.return_value = np.zeros((1, 13))
+    mock_model_manager.credit_card_explainer.expected_value = 0.0
+
+    service = CreditCardInferenceService(mock_model_manager)
+    response = await service.predict(sample_cc_request)
+
+    assert service.feature_names is not None
+    assert len(service.feature_names) == 13
+    assert response.probability_of_default == pytest.approx(0.4, rel=1e-4)
+    assert response.risk_segment == RiskSegment.HIGH.value
