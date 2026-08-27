@@ -16,8 +16,12 @@ from app.core.settings import get_settings
 from app.schemas.requests import LoanApplicationRequest, CreditCardApplicationRequest
 from app.schemas.responses import PredictionResponse, ModelInfoResponse, ErrorResponse
 from app.services.encoder import CategoricalEncoder
-from app.services.inference import InferenceService, get_inference_service
-
+from app.services.inference import (
+    LoanInferenceService, 
+    CreditCardInferenceService, 
+    get_loan_inference_service, 
+    get_credit_card_inference_service
+)
 logger = logging.getLogger(__name__)
 
 _settings = get_settings()
@@ -101,7 +105,7 @@ async def model_info(request: Request) -> ModelInfoResponse:
 )
 async def predict_loan(
     request: LoanApplicationRequest,
-    service: InferenceService = Depends(get_inference_service),
+    service: LoanInferenceService = Depends(get_loan_inference_service),
 ) -> PredictionResponse:
     """Loan risk prediction endpoint.
 
@@ -120,7 +124,7 @@ async def predict_loan(
     """
     logger.info("Prediction request for loan application from %s", request.gender)
 
-    response = await service.predict_loan(request)
+    response = await service.predict(request)
 
     logger.info(
         "Prediction completed: PD=%.3f, Segment=%s",
@@ -150,7 +154,7 @@ async def predict_loan(
 )
 async def predict_credit_card(
     request: CreditCardApplicationRequest,
-    service: InferenceService = Depends(get_inference_service),
+    service: CreditCardInferenceService = Depends(get_credit_card_inference_service),
 ) -> PredictionResponse:
     """Credit card risk prediction endpoint.
 
@@ -169,7 +173,7 @@ async def predict_credit_card(
     """
     logger.info("Prediction request for credit card application")
 
-    response = await service.predict_credit_card(request)
+    response = await service.predict(request)
 
     logger.info(
         "Credit card prediction completed: PD=%.3f, Segment=%s",
